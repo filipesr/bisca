@@ -6,6 +6,7 @@ import { useGameStore } from '@/lib/store/game-store';
 import { Card, PlayerId, GameStatus } from '@/lib/bisca/types';
 import { Card as PlayingCard } from '@/components/game/card';
 import { CardSelector } from '@/components/game/card-selector';
+import { Table } from '@/components/game/table';
 import { cardToString } from '@/lib/bisca/deck';
 import { describeStyle } from '@/lib/bisca/style-analyzer';
 
@@ -24,6 +25,7 @@ const GamePage = () => {
   const [mostrarSeletorJogada, setMostrarSeletorJogada] = useState(false);
   const [jogadorSelecionado, setJogadorSelecionado] = useState<PlayerId | null>(null);
   const [mensagem, setMensagem] = useState('');
+  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
 
   useEffect(() => {
     if (state.status === GameStatus.SETUP) {
@@ -69,6 +71,15 @@ const GamePage = () => {
     const resultado = requestRecommendation();
     setMensagem(resultado.message ?? resultado.error ?? '');
     setTimeout(() => setMensagem(''), 5000);
+  };
+
+  const handleJogarCartaSelecionada = (): void => {
+    if (!selectedCard) return;
+
+    const resultado = registerPlayedCard(usuarioId, selectedCard);
+    setMensagem(resultado.message ?? resultado.error ?? '');
+    setSelectedCard(null); // Limpar seleção após jogar
+    setTimeout(() => setMensagem(''), 3000);
   };
 
   const handleFinalizarRodada = (): void => {
@@ -164,46 +175,32 @@ const GamePage = () => {
           </div>
         </div>
 
-        {/* Rodada Atual */}
-        <div className="bg-white rounded-xl shadow-lg p-4">
-          <div className="mb-4">
-            <h3 className="font-semibold text-gray-900 mb-2">Cards Jogadas nesta Rodada</h3>
-            {rodadaCompleta ? (
-              <div className="bg-green-50 border-2 border-green-500 rounded-lg p-3">
-                <p className="text-sm text-green-700 font-medium mb-2">
-                  ✅ Todos jogaram! Finalize a rodada para ver o vencedor.
-                </p>
-                <button
-                  onClick={handleFinalizarRodada}
-                  className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
-                >
-                  🏆 Finalizar Rodada
-                </button>
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500">
-                Aguardando jogadas... ({state.currentRound?.playedCards.length ?? 0}/{state.configuration.numberOfPlayers})
-              </p>
-            )}
+        {/* Mesa */}
+        <Table
+          currentRound={state.currentRound}
+          trump={state.trump}
+          players={state.players}
+        />
+
+        {/* Finalizar Rodada */}
+        {rodadaCompleta && (
+          <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4">
+            <p className="text-sm text-green-700 font-medium mb-3 text-center">
+              ✅ Todos jogaram! Finalize a rodada para ver o vencedor e continuar.
+            </p>
+            <button
+              onClick={handleFinalizarRodada}
+              className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
+            >
+              🏆 Finalizar Rodada
+            </button>
           </div>
+        )}
 
-          {state.currentRound && state.currentRound.playedCards.length > 0 ? (
-            <div className="flex flex-wrap gap-4 justify-center">
-              {state.currentRound.playedCards.map((cj) => (
-                <div key={`${cj.playerId}-${cj.order}`} className="text-center">
-                  <PlayingCard carta={cj.card} />
-                  <p className="text-xs font-medium text-gray-600 mt-2">
-                    {state.players[cj.playerId]?.name}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-500 text-center">Nenhuma carta jogada ainda</p>
-          )}
-
-          {/* Botões para Registrar Jogadas */}
-          <div className="mt-4 flex flex-col gap-2">
+        {/* Botões para Registrar Jogadas dos Oponentes */}
+        <div className="bg-white rounded-xl shadow-lg p-4">
+          <h3 className="font-semibold text-gray-900 mb-3">Registrar Jogadas dos Oponentes</h3>
+          <div className="flex flex-col gap-2">
             {jogadores
               .filter((j) => j.id !== usuarioId)
               .map((jogador) => {
@@ -260,20 +257,67 @@ const GamePage = () => {
           </div>
 
           {state.userHand.length > 0 ? (
-            <div className="flex flex-wrap gap-4 justify-center">
-              {state.userHand.map((carta, index) => (
-                <div key={index} onClick={() => handleRemoverCardMao(carta)}>
-                  <PlayingCard
-                    carta={carta}
-                    onClick={() => handleRemoverCardMao(carta)}
-                    recommended={
-                      state.currentRecommendation?.card.rank === carta.rank &&
-                      state.currentRecommendation?.card.suit === carta.suit
-                    }
-                  />
+            <>
+              <div className="flex flex-wrap gap-4 justify-center">
+                {state.userHand.map((carta, index) => {
+                  const isSelected = selectedCard?.rank === carta.rank && selectedCard?.suit === carta.suit;
+                  const isRecommended = state.currentRecommendation?.card.rank === carta.rank &&
+                                       state.currentRecommendation?.card.suit === carta.suit;
+
+                  return (
+                    <div key={index} className="relative group">
+                      <PlayingCard
+                        carta={carta}
+                        onClick={() => setSelectedCard(isSelected ? null : carta)}
+                        selected={isSelected}
+                        recommended={isRecommended}
+                      />
+                      {/* Botão de remover */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoverCardMao(carta);
+                          if (isSelected) setSelectedCard(null);
+                        }}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs font-bold"
+                        title="Remover carta"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Botão para Jogar Carta Selecionada */}
+              {selectedCard && (
+                <div className="mt-4 flex flex-col items-center gap-2">
+                  {state.nextPlayer === usuarioId ? (
+                    <button
+                      onClick={handleJogarCartaSelecionada}
+                      className="w-full max-w-xs px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                    >
+                      🎯 Jogar {cardToString(selectedCard)}
+                    </button>
+                  ) : (
+                    <div className="text-center">
+                      <p className="text-sm text-orange-600 font-medium">
+                        ⚠️ Não é sua vez de jogar
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Aguarde {state.players[state.nextPlayer ?? 'player1']?.name}
+                      </p>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setSelectedCard(null)}
+                    className="text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    Cancelar seleção
+                  </button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           ) : (
             <p className="text-gray-500 text-center">
               Adicione as cartas da sua mão usando o botão acima
