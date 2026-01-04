@@ -250,29 +250,39 @@ const GamePage = () => {
             <div className="flex flex-col gap-2">
               {jogadores
                 .filter((j) => j.id !== usuarioId)
-                .map((jogador) => {
-                  const isNextPlayer = jogador.id === state.nextPlayer;
+                .filter((j) => !state.currentRound?.playedCards.some((pc) => pc.playerId === j.id))
+                .length > 0 ? (
+                jogadores
+                  .filter((j) => j.id !== usuarioId)
+                  .filter((j) => !state.currentRound?.playedCards.some((pc) => pc.playerId === j.id))
+                  .map((jogador) => {
+                    const isNextPlayer = jogador.id === state.nextPlayer;
 
-                  return (
-                    <button
-                      key={jogador.id}
-                      onClick={() => {
-                        setJogadorSelecionado(jogador.id);
-                        setMostrarSeletorJogada(true);
-                      }}
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors text-left ${
-                        isNextPlayer
-                          ? 'bg-blue-600 text-white hover:bg-blue-700'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      <span className="flex items-center justify-between">
-                        <span>{jogador.name}</span>
-                        {isNextPlayer && <span className="text-sm">⬅️ Próximo</span>}
-                      </span>
-                    </button>
-                  );
-                })}
+                    return (
+                      <button
+                        key={jogador.id}
+                        onClick={() => {
+                          setJogadorSelecionado(jogador.id);
+                          setMostrarSeletorJogada(true);
+                        }}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors text-left ${
+                          isNextPlayer
+                            ? 'bg-blue-600 text-white hover:bg-blue-700'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        <span className="flex items-center justify-between">
+                          <span>{jogador.name}</span>
+                          {isNextPlayer && <span className="text-sm">⬅️ Próximo</span>}
+                        </span>
+                      </button>
+                    );
+                  })
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-2">
+                  Todos os oponentes já jogaram
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -345,22 +355,16 @@ const GamePage = () => {
               {/* Botão para Jogar Carta Selecionada */}
               {selectedCard && (
                 <div className="mt-4 flex flex-col items-center gap-2">
-                  {state.nextPlayer === usuarioId ? (
-                    <button
-                      onClick={handleJogarCartaSelecionada}
-                      className="w-full max-w-xs px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors shadow-lg"
-                    >
-                      🎯 Jogar {cardToString(selectedCard)}
-                    </button>
-                  ) : (
-                    <div className="text-center">
-                      <p className="text-sm text-orange-600 font-medium">
-                        ⚠️ Não é sua vez de jogar
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Aguarde {state.players[state.nextPlayer ?? 'player1']?.name}
-                      </p>
-                    </div>
+                  <button
+                    onClick={handleJogarCartaSelecionada}
+                    className="w-full max-w-xs px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                  >
+                    🎯 Jogar {cardToString(selectedCard)}
+                  </button>
+                  {state.nextPlayer && state.nextPlayer !== usuarioId && (
+                    <p className="text-xs text-gray-500">
+                      Sugestão: aguardar {state.players[state.nextPlayer]?.name}
+                    </p>
                   )}
                   <button
                     onClick={() => setSelectedCard(null)}

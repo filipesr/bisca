@@ -186,13 +186,14 @@ export const useGameStore = create<GameStore>()(
           return { success: false, error: 'Nenhuma rodada ativa' };
         }
 
-        // VALIDAÇÃO DE ORDEM FORÇADA
-        // Se nextPlayer já está definido (não é a primeira jogada), validar ordem
-        if (state.nextPlayer !== null && state.nextPlayer !== playerId) {
-          const nextPlayerName = state.players[state.nextPlayer]?.name ?? 'Desconhecido';
+        // Verifica se o jogador já jogou nesta rodada
+        const alreadyPlayed = state.currentRound.playedCards.some(
+          (pc) => pc.playerId === playerId
+        );
+        if (alreadyPlayed) {
           return {
             success: false,
-            error: `Não é a vez de jogar! Aguarde ${nextPlayerName}`
+            error: 'Este jogador já jogou nesta rodada',
           };
         }
 
@@ -236,28 +237,24 @@ export const useGameStore = create<GameStore>()(
 
         // LÓGICA DE PRIMEIRA JOGADA DINÂMICA
         let firstPlayer = state.firstPlayer;
-        let playOrder: PlayerId[];
 
+        // Se é a primeira carta do jogo (nenhuma rodada completada E firstPlayer não definido)
+        // Define o primeiro jogador como quem jogou esta carta
         if (state.firstPlayer === null && state.rounds.length === 0 && order === 1) {
-          // Esta é a PRIMEIRA CARTA do jogo! Define o primeiro jogador
           firstPlayer = playerId;
-          playOrder = determinePlayOrder(
-            state.configuration.numberOfPlayers,
-            null,
-            firstPlayer
-          );
-        } else {
-          // Jogadas subsequentes: usar firstPlayer já definido
-          const previousWinner = state.rounds.length > 0
-            ? state.rounds[state.rounds.length - 1]?.winner ?? null
-            : null;
-
-          playOrder = determinePlayOrder(
-            state.configuration.numberOfPlayers,
-            previousWinner,
-            firstPlayer
-          );
         }
+
+        // Determina ordem de jogo
+        let playOrder: PlayerId[];
+        const previousWinner = state.rounds.length > 0
+          ? state.rounds[state.rounds.length - 1]?.winner ?? null
+          : null;
+
+        playOrder = determinePlayOrder(
+          state.configuration.numberOfPlayers,
+          previousWinner,
+          firstPlayer
+        );
 
         // Determina próximo jogador
         const currentIndex = playOrder.indexOf(playerId);
