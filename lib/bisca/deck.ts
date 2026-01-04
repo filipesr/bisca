@@ -1,240 +1,240 @@
-import { Carta, Naipe, Valor } from './types';
+import { Card, Suit, Rank } from './types';
 
 /**
- * Tabela de pontuação das cartas em Bisca
+ * Card points table in Bisca
  */
-export const PONTOS_CARTA: Record<Valor, number> = {
-  [Valor.AS]: 11,
-  [Valor.SETE]: 10,
-  [Valor.REI]: 4,
-  [Valor.VALETE]: 3,
-  [Valor.DAMA]: 2,
-  [Valor.SEIS]: 0,
-  [Valor.CINCO]: 0,
-  [Valor.QUATRO]: 0,
-  [Valor.TRES]: 0,
-  [Valor.DOIS]: 0,
+export const CARD_POINTS: Record<Rank, number> = {
+  [Rank.ACE]: 11,
+  [Rank.SEVEN]: 10,
+  [Rank.KING]: 4,
+  [Rank.JACK]: 3,
+  [Rank.QUEEN]: 2,
+  [Rank.SIX]: 0,
+  [Rank.FIVE]: 0,
+  [Rank.FOUR]: 0,
+  [Rank.THREE]: 0,
+  [Rank.TWO]: 0,
 };
 
 /**
- * Ordem de força das cartas (para determinar vencedor)
- * Maior valor = carta mais forte
+ * Card strength order (to determine winner)
+ * Higher value = stronger card
  */
-export const FORCA_CARTA: Record<Valor, number> = {
-  [Valor.AS]: 11,
-  [Valor.SETE]: 10,
-  [Valor.REI]: 9,
-  [Valor.VALETE]: 8,
-  [Valor.DAMA]: 7,
-  [Valor.SEIS]: 6,
-  [Valor.CINCO]: 5,
-  [Valor.QUATRO]: 4,
-  [Valor.TRES]: 3,
-  [Valor.DOIS]: 2,
+export const CARD_STRENGTH: Record<Rank, number> = {
+  [Rank.ACE]: 11,
+  [Rank.SEVEN]: 10,
+  [Rank.KING]: 9,
+  [Rank.JACK]: 8,
+  [Rank.QUEEN]: 7,
+  [Rank.SIX]: 6,
+  [Rank.FIVE]: 5,
+  [Rank.FOUR]: 4,
+  [Rank.THREE]: 3,
+  [Rank.TWO]: 2,
 };
 
 /**
- * Todos os valores possíveis no baralho de Bisca
+ * All possible values in a Bisca deck
  */
-export const VALORES_BARALHO: Valor[] = [
-  Valor.AS,
-  Valor.SETE,
-  Valor.REI,
-  Valor.VALETE,
-  Valor.DAMA,
-  Valor.SEIS,
-  Valor.CINCO,
-  Valor.QUATRO,
-  Valor.TRES,
-  Valor.DOIS,
+export const DECK_RANKS: Rank[] = [
+  Rank.ACE,
+  Rank.SEVEN,
+  Rank.KING,
+  Rank.JACK,
+  Rank.QUEEN,
+  Rank.SIX,
+  Rank.FIVE,
+  Rank.FOUR,
+  Rank.THREE,
+  Rank.TWO,
 ];
 
 /**
- * Todos os naipes
+ * All suits
  */
-export const NAIPES_BARALHO: Naipe[] = [
-  Naipe.COPAS,
-  Naipe.OUROS,
-  Naipe.ESPADAS,
-  Naipe.PAUS,
+export const DECK_SUITS: Suit[] = [
+  Suit.HEARTS,
+  Suit.DIAMONDS,
+  Suit.SPADES,
+  Suit.CLUBS,
 ];
 
 /**
- * Total de pontos em um jogo de Bisca
+ * Total points in a Bisca game
  */
-export const TOTAL_PONTOS = 120;
+export const TOTAL_POINTS = 120;
 
 /**
- * Número de cartas no baralho
+ * Number of cards in the deck
  */
-export const TOTAL_CARTAS = 40;
+export const TOTAL_CARDS = 40;
 
 /**
- * Cria uma carta
+ * Creates a card
  */
-export const criarCarta = (valor: Valor, naipe: Naipe): Carta => ({
-  valor,
-  naipe,
-  pontos: PONTOS_CARTA[valor] ?? 0,
+export const createCard = (rank: Rank, suit: Suit): Card => ({
+  rank,
+  suit,
+  points: CARD_POINTS[rank] ?? 0,
 });
 
 /**
- * Cria um baralho completo de Bisca (40 cartas)
+ * Creates a complete Bisca deck (40 cards)
  */
-export const criarBaralho = (): Carta[] => {
-  const baralho: Carta[] = [];
+export const createDeck = (): Card[] => {
+  const deck: Card[] = [];
 
-  for (const naipe of NAIPES_BARALHO) {
-    for (const valor of VALORES_BARALHO) {
-      baralho.push(criarCarta(valor, naipe));
+  for (const suit of DECK_SUITS) {
+    for (const rank of DECK_RANKS) {
+      deck.push(createCard(rank, suit));
     }
   }
 
-  return baralho;
+  return deck;
 };
 
 /**
- * Embaralha um array (Fisher-Yates shuffle)
+ * Shuffles an array (Fisher-Yates shuffle)
  */
-export const embaralhar = <T>(array: T[]): T[] => {
-  const embaralhado = [...array];
+export const shuffle = <T>(array: T[]): T[] => {
+  const shuffled = [...array];
 
-  for (let i = embaralhado.length - 1; i > 0; i--) {
+  for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    const temp = embaralhado[i];
-    if (temp !== undefined && embaralhado[j] !== undefined) {
-      embaralhado[i] = embaralhado[j]!;
-      embaralhado[j] = temp;
+    const temp = shuffled[i];
+    if (temp !== undefined && shuffled[j] !== undefined) {
+      shuffled[i] = shuffled[j]!;
+      shuffled[j] = temp;
     }
   }
 
-  return embaralhado;
+  return shuffled;
 };
 
 /**
- * Compara duas cartas (para igualdade)
+ * Compares two cards (for equality)
  */
-export const cartasIguais = (carta1: Carta, carta2: Carta): boolean => {
-  return carta1.valor === carta2.valor && carta1.naipe === carta2.naipe;
+export const cardsEqual = (card1: Card, card2: Card): boolean => {
+  return card1.rank === card2.rank && card1.suit === card2.suit;
 };
 
 /**
- * Encontra uma carta em um array
+ * Finds a card in an array
  */
-export const encontrarCarta = (cartas: Carta[], alvo: Carta): number => {
-  return cartas.findIndex((carta) => cartasIguais(carta, alvo));
+export const findCard = (cards: Card[], target: Card): number => {
+  return cards.findIndex((card) => cardsEqual(card, target));
 };
 
 /**
- * Remove uma carta de um array
+ * Removes a card from an array
  */
-export const removerCarta = (cartas: Carta[], alvo: Carta): Carta[] => {
-  const index = encontrarCarta(cartas, alvo);
+export const removeCard = (cards: Card[], target: Card): Card[] => {
+  const index = findCard(cards, target);
   if (index === -1) {
-    return cartas;
+    return cards;
   }
 
-  return [...cartas.slice(0, index), ...cartas.slice(index + 1)];
+  return [...cards.slice(0, index), ...cards.slice(index + 1)];
 };
 
 /**
- * Calcula o total de pontos em um conjunto de cartas
+ * Calculates total points in a set of cards
  */
-export const calcularPontos = (cartas: Carta[]): number => {
-  return cartas.reduce((total, carta) => total + carta.pontos, 0);
+export const calculatePoints = (cards: Card[]): number => {
+  return cards.reduce((total, card) => total + card.points, 0);
 };
 
 /**
- * Verifica se uma carta é trunfo
+ * Checks if a card is trump
  */
-export const isTrunfo = (carta: Carta, trunfo: Carta | null): boolean => {
-  if (!trunfo) return false;
-  return carta.naipe === trunfo.naipe;
+export const isTrump = (card: Card, trump: Card | null): boolean => {
+  if (!trump) return false;
+  return card.suit === trump.suit;
 };
 
 /**
- * Compara duas cartas e determina qual é mais forte
- * Retorna: 1 se carta1 vence, -1 se carta2 vence, 0 se empate (não deveria acontecer)
+ * Compares two cards and determines which is stronger
+ * Returns: 1 if card1 wins, -1 if card2 wins, 0 if tie (shouldn't happen)
  */
-export const compararCartas = (
-  carta1: Carta,
-  carta2: Carta,
-  trunfo: Carta | null,
-  primeiraCarta: Carta
+export const compareCards = (
+  card1: Card,
+  card2: Card,
+  trump: Card | null,
+  firstCard: Card
 ): number => {
-  const carta1Trunfo = isTrunfo(carta1, trunfo);
-  const carta2Trunfo = isTrunfo(carta2, trunfo);
+  const card1Trump = isTrump(card1, trump);
+  const card2Trump = isTrump(card2, trump);
 
-  // Trunfo sempre vence carta normal
-  if (carta1Trunfo && !carta2Trunfo) return 1;
-  if (carta2Trunfo && !carta1Trunfo) return -1;
+  // Trump always wins over non-trump
+  if (card1Trump && !card2Trump) return 1;
+  if (card2Trump && !card1Trump) return -1;
 
-  // Ambas são trunfo: compara força
-  if (carta1Trunfo && carta2Trunfo) {
-    const forca1 = FORCA_CARTA[carta1.valor] ?? 0;
-    const forca2 = FORCA_CARTA[carta2.valor] ?? 0;
-    return forca1 > forca2 ? 1 : forca1 < forca2 ? -1 : 0;
+  // Both are trump: compare strength
+  if (card1Trump && card2Trump) {
+    const strength1 = CARD_STRENGTH[card1.rank] ?? 0;
+    const strength2 = CARD_STRENGTH[card2.rank] ?? 0;
+    return strength1 > strength2 ? 1 : strength1 < strength2 ? -1 : 0;
   }
 
-  // Nenhuma é trunfo: apenas cartas do mesmo naipe da primeira carta competem
-  const carta1MesmoNaipe = carta1.naipe === primeiraCarta.naipe;
-  const carta2MesmoNaipe = carta2.naipe === primeiraCarta.naipe;
+  // Neither is trump: only cards of the same suit as first card compete
+  const card1SameSuit = card1.suit === firstCard.suit;
+  const card2SameSuit = card2.suit === firstCard.suit;
 
-  // Se apenas uma é do mesmo naipe que a primeira, ela vence
-  if (carta1MesmoNaipe && !carta2MesmoNaipe) return 1;
-  if (carta2MesmoNaipe && !carta1MesmoNaipe) return -1;
+  // If only one is same suit as first, it wins
+  if (card1SameSuit && !card2SameSuit) return 1;
+  if (card2SameSuit && !card1SameSuit) return -1;
 
-  // Ambas do mesmo naipe ou ambas de naipes diferentes: compara força
-  if (carta1MesmoNaipe && carta2MesmoNaipe) {
-    const forca1 = FORCA_CARTA[carta1.valor] ?? 0;
-    const forca2 = FORCA_CARTA[carta2.valor] ?? 0;
-    return forca1 > forca2 ? 1 : forca1 < forca2 ? -1 : 0;
+  // Both same suit or both different suits: compare strength
+  if (card1SameSuit && card2SameSuit) {
+    const strength1 = CARD_STRENGTH[card1.rank] ?? 0;
+    const strength2 = CARD_STRENGTH[card2.rank] ?? 0;
+    return strength1 > strength2 ? 1 : strength1 < strength2 ? -1 : 0;
   }
 
-  // Ambas de naipes diferentes da primeira: primeira jogada vence
+  // Both different suits from first: first played wins
   return 0;
 };
 
 /**
- * Converte uma carta para string legível
+ * Converts a card to a readable string
  */
-export const cartaParaString = (carta: Carta): string => {
-  const simbolos: Record<Naipe, string> = {
-    [Naipe.COPAS]: '♥️',
-    [Naipe.OUROS]: '♦️',
-    [Naipe.ESPADAS]: '♠️',
-    [Naipe.PAUS]: '♣️',
+export const cardToString = (card: Card): string => {
+  const symbols: Record<Suit, string> = {
+    [Suit.HEARTS]: '♥️',
+    [Suit.DIAMONDS]: '♦️',
+    [Suit.SPADES]: '♠️',
+    [Suit.CLUBS]: '♣️',
   };
 
-  return `${carta.valor}${simbolos[carta.naipe] ?? ''}`;
+  return `${card.rank}${symbols[card.suit] ?? ''}`;
 };
 
 /**
- * Converte string para carta (parseamento)
+ * Converts string to card (parsing)
  */
-export const stringParaCarta = (str: string): Carta | null => {
-  const simbolos: Record<string, Naipe> = {
-    '♥️': Naipe.COPAS,
-    '♥': Naipe.COPAS,
-    '♦️': Naipe.OUROS,
-    '♦': Naipe.OUROS,
-    '♠️': Naipe.ESPADAS,
-    '♠': Naipe.ESPADAS,
-    '♣️': Naipe.PAUS,
-    '♣': Naipe.PAUS,
+export const stringToCard = (str: string): Card | null => {
+  const symbols: Record<string, Suit> = {
+    '♥️': Suit.HEARTS,
+    '♥': Suit.HEARTS,
+    '♦️': Suit.DIAMONDS,
+    '♦': Suit.DIAMONDS,
+    '♠️': Suit.SPADES,
+    '♠': Suit.SPADES,
+    '♣️': Suit.CLUBS,
+    '♣': Suit.CLUBS,
   };
 
-  // Extrai valor e naipe
+  // Extract rank and suit
   const match = str.match(/^([AKQJ0-9]+)(♥️|♥|♦️|♦|♠️|♠|♣️|♣)$/);
   if (!match) return null;
 
-  const valorStr = match[1];
-  const naipeStr = match[2];
+  const rankStr = match[1];
+  const suitStr = match[2];
 
-  const valor = Object.values(Valor).find((v) => v === valorStr);
-  const naipe = naipeStr ? simbolos[naipeStr] : undefined;
+  const rank = Object.values(Rank).find((v) => v === rankStr);
+  const suit = suitStr ? symbols[suitStr] : undefined;
 
-  if (!valor || !naipe) return null;
+  if (!rank || !suit) return null;
 
-  return criarCarta(valor, naipe);
+  return createCard(rank, suit);
 };

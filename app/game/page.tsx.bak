@@ -3,17 +3,17 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGameStore } from '@/lib/store/game-store';
-import { Card, PlayerId, GameStatus } from '@/lib/bisca/types';
-import { Card as PlayingCard } from '@/components/game/card';
+import { Carta, JogadorId, StatusJogo } from '@/lib/bisca/types';
+import { Card } from '@/components/game/card';
 import { CardSelector } from '@/components/game/card-selector';
-import { cardToString } from '@/lib/bisca/deck';
-import { describeStyle } from '@/lib/bisca/style-analyzer';
+import { cartaParaString } from '@/lib/bisca/deck';
+import { descreverEstilo } from '@/lib/bisca/style-analyzer';
 
 const GamePage = () => {
   const router = useRouter();
   const {
     estado,
-    registrarCardJogada,
+    registrarCartaJogada,
     atualizarMaoUsuario,
     solicitarRecomendacao,
     finalizarRodada,
@@ -22,35 +22,35 @@ const GamePage = () => {
 
   const [mostrarSeletorMao, setMostrarSeletorMao] = useState(false);
   const [mostrarSeletorJogada, setMostrarSeletorJogada] = useState(false);
-  const [jogadorSelecionado, setJogadorSelecionado] = useState<PlayerId | null>(null);
+  const [jogadorSelecionado, setJogadorSelecionado] = useState<JogadorId | null>(null);
   const [mensagem, setMensagem] = useState('');
 
   useEffect(() => {
-    if (estado.status === GameStatus.CONFIGURACAO) {
+    if (estado.status === StatusJogo.CONFIGURACAO) {
       router.push('/setup');
     }
   }, [estado.status, router]);
 
-  const handleAdicionarCardMao = (carta: Card): void => {
+  const handleAdicionarCartaMao = (carta: Carta): void => {
     const novaMao = [...estado.maoUsuario, carta];
     atualizarMaoUsuario(novaMao);
-    setMensagem(`${cardToString(carta)} adicionada à sua mão`);
+    setMensagem(`${cartaParaString(carta)} adicionada à sua mão`);
     setTimeout(() => setMensagem(''), 3000);
   };
 
-  const handleRemoverCardMao = (carta: Card): void => {
+  const handleRemoverCartaMao = (carta: Carta): void => {
     const novaMao = estado.maoUsuario.filter(
       (c) => !(c.valor === carta.valor && c.naipe === carta.naipe)
     );
     atualizarMaoUsuario(novaMao);
-    setMensagem(`${cardToString(carta)} removida da mão`);
+    setMensagem(`${cartaParaString(carta)} removida da mão`);
     setTimeout(() => setMensagem(''), 3000);
   };
 
-  const handleRegistrarJogada = (carta: Card): void => {
+  const handleRegistrarJogada = (carta: Carta): void => {
     if (!jogadorSelecionado) return;
 
-    const resultado = registrarCardJogada(jogadorSelecionado, carta);
+    const resultado = registrarCartaJogada(jogadorSelecionado, carta);
     setMensagem(resultado.mensagem ?? resultado.erro ?? '');
     setMostrarSeletorJogada(false);
     setJogadorSelecionado(null);
@@ -117,7 +117,7 @@ const GamePage = () => {
             <h3 className="font-semibold text-gray-900 mb-3">Trunfo</h3>
             {estado.trunfo ? (
               <div className="flex justify-center">
-                <PlayingCard carta={estado.trunfo} small />
+                <Card carta={estado.trunfo} small />
               </div>
             ) : (
               <p className="text-gray-500 text-center">Nenhum trunfo definido</p>
@@ -146,7 +146,7 @@ const GamePage = () => {
         {/* Rodada Atual */}
         <div className="bg-white rounded-xl shadow-lg p-4">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-900">Cards Jogadas nesta Rodada</h3>
+            <h3 className="font-semibold text-gray-900">Cartas Jogadas nesta Rodada</h3>
             {rodadaCompleta && (
               <button
                 onClick={handleFinalizarRodada}
@@ -161,7 +161,7 @@ const GamePage = () => {
             <div className="flex flex-wrap gap-4 justify-center">
               {estado.rodadaAtual.cartasJogadas.map((cj) => (
                 <div key={`${cj.jogadorId}-${cj.ordem}`} className="text-center">
-                  <PlayingCard carta={cj.carta} />
+                  <Card carta={cj.carta} />
                   <p className="text-xs font-medium text-gray-600 mt-2">
                     {estado.jogadores[cj.jogadorId]?.nome}
                   </p>
@@ -199,17 +199,17 @@ const GamePage = () => {
               onClick={() => setMostrarSeletorMao(true)}
               className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
             >
-              + Adicionar Card
+              + Adicionar Carta
             </button>
           </div>
 
           {estado.maoUsuario.length > 0 ? (
             <div className="flex flex-wrap gap-4 justify-center">
               {estado.maoUsuario.map((carta, index) => (
-                <div key={index} onClick={() => handleRemoverCardMao(carta)}>
+                <div key={index} onClick={() => handleRemoverCartaMao(carta)}>
                   <Card
                     carta={carta}
-                    onClick={() => handleRemoverCardMao(carta)}
+                    onClick={() => handleRemoverCartaMao(carta)}
                     recommended={
                       estado.recomendacaoAtual?.carta.valor === carta.valor &&
                       estado.recomendacaoAtual?.carta.naipe === carta.naipe
@@ -242,7 +242,7 @@ const GamePage = () => {
             <h3 className="font-semibold text-gray-900 mb-3">💡 Recomendação</h3>
             <div className="space-y-2">
               <div className="flex items-center gap-4">
-                <PlayingCard carta={estado.recomendacaoAtual.carta} small />
+                <Card carta={estado.recomendacaoAtual.carta} small />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900">
                     {estado.recomendacaoAtual.motivo}
@@ -274,7 +274,7 @@ const GamePage = () => {
                     {analise.estilo}
                   </span>
                 </div>
-                <p className="text-xs text-gray-600 mt-1">{describeStyle(analise)}</p>
+                <p className="text-xs text-gray-600 mt-1">{descreverEstilo(analise)}</p>
               </div>
             ))}
           </div>
@@ -284,8 +284,8 @@ const GamePage = () => {
       {/* Modals */}
       {mostrarSeletorMao && (
         <CardSelector
-          title="Adicionar Card à Mão"
-          onSelect={handleAdicionarCardMao}
+          title="Adicionar Carta à Mão"
+          onSelect={handleAdicionarCartaMao}
           onCancel={() => setMostrarSeletorMao(false)}
         />
       )}

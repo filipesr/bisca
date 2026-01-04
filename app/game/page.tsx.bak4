@@ -117,7 +117,7 @@ const GamePage = () => {
             <h3 className="font-semibold text-gray-900 mb-3">Trunfo</h3>
             {estado.trunfo ? (
               <div className="flex justify-center">
-                <PlayingCard carta={estado.trunfo} small />
+                <Card carta={estado.trunfo} small />
               </div>
             ) : (
               <p className="text-gray-500 text-center">Nenhum trunfo definido</p>
@@ -161,7 +161,7 @@ const GamePage = () => {
             <div className="flex flex-wrap gap-4 justify-center">
               {estado.rodadaAtual.cartasJogadas.map((cj) => (
                 <div key={`${cj.jogadorId}-${cj.ordem}`} className="text-center">
-                  <PlayingCard carta={cj.carta} />
+                  <Card carta={cj.carta} />
                   <p className="text-xs font-medium text-gray-600 mt-2">
                     {estado.jogadores[cj.jogadorId]?.nome}
                   </p>
@@ -242,7 +242,7 @@ const GamePage = () => {
             <h3 className="font-semibold text-gray-900 mb-3">💡 Recomendação</h3>
             <div className="space-y-2">
               <div className="flex items-center gap-4">
-                <PlayingCard carta={estado.recomendacaoAtual.carta} small />
+                <Card carta={estado.recomendacaoAtual.carta} small />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900">
                     {estado.recomendacaoAtual.motivo}

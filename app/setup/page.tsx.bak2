@@ -31,7 +31,7 @@ const SetupPage = () => {
     const configuracao: GameConfiguration = {
       numeroJogadores,
       nomesJogadores,
-      idUsuario: 'player1' as PlayerId,
+      idUsuario: 'jogador1' as PlayerId,
     };
 
     const resultado = iniciarJogo(configuracao);

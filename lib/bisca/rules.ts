@@ -1,181 +1,181 @@
-import { Carta, JogadorId, Rodada } from './types';
-import { compararCartas, calcularPontos } from './deck';
+import { Card, PlayerId, Round } from './types';
+import { compareCards, calculatePoints } from './deck';
 
 /**
- * Determina o vencedor de uma rodada
+ * Determines the winner of a round
  */
-export const determinarVencedorRodada = (
-  rodada: Rodada,
-  trunfo: Carta | null
-): { vencedor: JogadorId; pontosGanhos: number } | null => {
-  if (rodada.cartasJogadas.length === 0) {
+export const determineRoundWinner = (
+  round: Round,
+  trump: Card | null
+): { winner: PlayerId; pointsWon: number } | null => {
+  if (round.playedCards.length === 0) {
     return null;
   }
 
-  // Ordena as cartas jogadas por ordem de jogada
-  const cartasOrdenadas = [...rodada.cartasJogadas].sort((a, b) => a.ordem - b.ordem);
+  // Sort played cards by play order
+  const orderedCards = [...round.playedCards].sort((a, b) => a.order - b.order);
 
-  const primeiraCarta = cartasOrdenadas[0];
-  if (!primeiraCarta) {
+  const firstCard = orderedCards[0];
+  if (!firstCard) {
     return null;
   }
 
-  let cartaVencedora = primeiraCarta;
+  let winningCard = firstCard;
 
-  // Compara cada carta com a atual vencedora
-  for (const cartaJogada of cartasOrdenadas.slice(1)) {
-    const resultado = compararCartas(
-      cartaJogada.carta,
-      cartaVencedora.carta,
-      trunfo,
-      primeiraCarta.carta
+  // Compare each card with the current winner
+  for (const playedCard of orderedCards.slice(1)) {
+    const result = compareCards(
+      playedCard.card,
+      winningCard.card,
+      trump,
+      firstCard.card
     );
 
-    if (resultado > 0) {
-      cartaVencedora = cartaJogada;
+    if (result > 0) {
+      winningCard = playedCard;
     }
   }
 
-  // Calcula pontos ganhos
-  const todasCartas = cartasOrdenadas.map((cj) => cj.carta);
-  const pontosGanhos = calcularPontos(todasCartas);
+  // Calculate points won
+  const allCards = orderedCards.map((pc) => pc.card);
+  const pointsWon = calculatePoints(allCards);
 
   return {
-    vencedor: cartaVencedora.jogadorId,
-    pontosGanhos,
+    winner: winningCard.playerId,
+    pointsWon,
   };
 };
 
 /**
- * Valida se uma carta pode ser jogada
- * Em Bisca, não há restrições - qualquer carta da mão pode ser jogada
+ * Validates if a card can be played
+ * In Bisca, there are no restrictions - any card from hand can be played
  */
-export const validarJogada = (carta: Carta, mao: Carta[]): boolean => {
-  return mao.some((c) => c.valor === carta.valor && c.naipe === carta.naipe);
+export const validatePlay = (card: Card, hand: Card[]): boolean => {
+  return hand.some((c) => c.rank === card.rank && c.suit === card.suit);
 };
 
 /**
- * Determina a ordem de jogo em uma rodada de 2 jogadores
+ * Determines play order in a 2-player round
  */
-export const determinarOrdemJogo2Jogadores = (
-  vencedorRodadaAnterior: JogadorId | null
-): JogadorId[] => {
-  if (!vencedorRodadaAnterior) {
-    // Primeira rodada: jogador 1 começa
-    return ['jogador1', 'jogador2'];
+export const determine2PlayerPlayOrder = (
+  previousRoundWinner: PlayerId | null
+): PlayerId[] => {
+  if (!previousRoundWinner) {
+    // First round: player 1 starts
+    return ['player1', 'player2'];
   }
 
-  // Vencedor da rodada anterior começa
-  const outro: JogadorId = vencedorRodadaAnterior === 'jogador1' ? 'jogador2' : 'jogador1';
-  return [vencedorRodadaAnterior, outro];
+  // Previous round winner starts
+  const other: PlayerId = previousRoundWinner === 'player1' ? 'player2' : 'player1';
+  return [previousRoundWinner, other];
 };
 
 /**
- * Determina a ordem de jogo em uma rodada de 4 jogadores
+ * Determines play order in a 4-player round
  */
-export const determinarOrdemJogo4Jogadores = (
-  vencedorRodadaAnterior: JogadorId | null,
-  primeiroJogadorPartida: JogadorId = 'jogador1'
-): JogadorId[] => {
-  const ordemCompleta: JogadorId[] = ['jogador1', 'jogador2', 'jogador3', 'jogador4'];
+export const determine4PlayerPlayOrder = (
+  previousRoundWinner: PlayerId | null,
+  firstPlayerOfMatch: PlayerId = 'player1'
+): PlayerId[] => {
+  const completeOrder: PlayerId[] = ['player1', 'player2', 'player3', 'player4'];
 
-  if (!vencedorRodadaAnterior) {
-    // Primeira rodada: ordem padrão começando pelo primeiro jogador
-    const index = ordemCompleta.indexOf(primeiroJogadorPartida);
-    return [...ordemCompleta.slice(index), ...ordemCompleta.slice(0, index)];
+  if (!previousRoundWinner) {
+    // First round: default order starting from first player
+    const index = completeOrder.indexOf(firstPlayerOfMatch);
+    return [...completeOrder.slice(index), ...completeOrder.slice(0, index)];
   }
 
-  // Vencedor da rodada anterior começa
-  const index = ordemCompleta.indexOf(vencedorRodadaAnterior);
-  return [...ordemCompleta.slice(index), ...ordemCompleta.slice(0, index)];
+  // Previous round winner starts
+  const index = completeOrder.indexOf(previousRoundWinner);
+  return [...completeOrder.slice(index), ...completeOrder.slice(0, index)];
 };
 
 /**
- * Determina a ordem de jogo baseado no número de jogadores
+ * Determines play order based on number of players
  */
-export const determinarOrdemJogo = (
-  numeroJogadores: 2 | 4,
-  vencedorRodadaAnterior: JogadorId | null,
-  primeiroJogadorPartida: JogadorId = 'jogador1'
-): JogadorId[] => {
-  if (numeroJogadores === 2) {
-    return determinarOrdemJogo2Jogadores(vencedorRodadaAnterior);
+export const determinePlayOrder = (
+  numberOfPlayers: 2 | 4,
+  previousRoundWinner: PlayerId | null,
+  firstPlayerOfMatch: PlayerId = 'player1'
+): PlayerId[] => {
+  if (numberOfPlayers === 2) {
+    return determine2PlayerPlayOrder(previousRoundWinner);
   }
 
-  return determinarOrdemJogo4Jogadores(vencedorRodadaAnterior, primeiroJogadorPartida);
+  return determine4PlayerPlayOrder(previousRoundWinner, firstPlayerOfMatch);
 };
 
 /**
- * Verifica se o jogo terminou
- * O jogo termina quando todas as cartas foram jogadas
+ * Checks if the game is over
+ * The game ends when all cards have been played
  */
-export const verificarFimDeJogo = (
-  cartasJogadas: Carta[]
+export const checkGameEnd = (
+  playedCards: Card[]
 ): boolean => {
-  // Total de cartas no baralho
-  const totalCartas = 40;
-  return cartasJogadas.length === totalCartas;
+  // Total cards in deck
+  const totalCards = 40;
+  return playedCards.length === totalCards;
 };
 
 /**
- * Determina o vencedor do jogo baseado na pontuação
+ * Determines the game winner based on score
  */
-export const determinarVencedorJogo = (
-  pontosJogadores: Record<JogadorId, number>,
-  numeroJogadores: 2 | 4
-): JogadorId | null => {
-  if (numeroJogadores === 2) {
-    const pontos1 = pontosJogadores['jogador1'] ?? 0;
-    const pontos2 = pontosJogadores['jogador2'] ?? 0;
+export const determineGameWinner = (
+  playersPoints: Record<PlayerId, number>,
+  numberOfPlayers: 2 | 4
+): PlayerId | null => {
+  if (numberOfPlayers === 2) {
+    const points1 = playersPoints['player1'] ?? 0;
+    const points2 = playersPoints['player2'] ?? 0;
 
-    if (pontos1 > pontos2) return 'jogador1';
-    if (pontos2 > pontos1) return 'jogador2';
-    return null; // Empate
+    if (points1 > points2) return 'player1';
+    if (points2 > points1) return 'player2';
+    return null; // Tie
   }
 
-  // 4 jogadores: equipes (1+3 vs 2+4)
-  const pontosEquipe1 = (pontosJogadores['jogador1'] ?? 0) + (pontosJogadores['jogador3'] ?? 0);
-  const pontosEquipe2 = (pontosJogadores['jogador2'] ?? 0) + (pontosJogadores['jogador4'] ?? 0);
+  // 4 players: teams (1+3 vs 2+4)
+  const team1Points = (playersPoints['player1'] ?? 0) + (playersPoints['player3'] ?? 0);
+  const team2Points = (playersPoints['player2'] ?? 0) + (playersPoints['player4'] ?? 0);
 
-  if (pontosEquipe1 > pontosEquipe2) return 'jogador1'; // Representa equipe 1
-  if (pontosEquipe2 > pontosEquipe1) return 'jogador2'; // Representa equipe 2
-  return null; // Empate
+  if (team1Points > team2Points) return 'player1'; // Represents team 1
+  if (team2Points > team1Points) return 'player2'; // Represents team 2
+  return null; // Tie
 };
 
 /**
- * Calcula quantas cartas cada jogador deve ter na mão
+ * Calculates how many cards each player should have in hand
  */
-export const calcularCartasNaMao = (
-  rodadaAtual: number,
-  numeroJogadores: 2 | 4
+export const calculateCardsInHand = (
+  currentRound: number,
+  numberOfPlayers: 2 | 4
 ): number => {
-  if (numeroJogadores === 2) {
-    // Cada jogador começa com 3 cartas, compra 1 após cada rodada até acabar o baralho
-    const cartasIniciais = 3;
-    const totalCartas = 40;
-    const cartasDistribuidas = cartasIniciais * 2; // 6 cartas
-    const cartasRestantes = totalCartas - cartasDistribuidas - (rodadaAtual - 1) * 2;
+  if (numberOfPlayers === 2) {
+    // Each player starts with 3 cards, draws 1 after each round until deck is empty
+    const initialCards = 3;
+    const totalCards = 40;
+    const distributedCards = initialCards * 2; // 6 cards
+    const remainingCards = totalCards - distributedCards - (currentRound - 1) * 2;
 
-    if (cartasRestantes >= 2) {
-      return cartasIniciais;
+    if (remainingCards >= 2) {
+      return initialCards;
     }
 
-    // Últimas rodadas: vai diminuindo
-    return Math.max(0, cartasIniciais - (rodadaAtual - (totalCartas / 2 - cartasIniciais)));
+    // Last rounds: decreasing
+    return Math.max(0, initialCards - (currentRound - (totalCards / 2 - initialCards)));
   }
 
-  // 4 jogadores: 10 cartas cada, sem compra
-  return Math.max(0, 10 - (rodadaAtual - 1));
+  // 4 players: 10 cards each, no draw
+  return Math.max(0, 10 - (currentRound - 1));
 };
 
 /**
- * Verifica se é necessário comprar cartas do baralho
+ * Checks if cards should be drawn from deck
  */
-export const deveComprarCartas = (
-  cartasNoBaralho: number,
-  numeroJogadores: 2 | 4
+export const shouldDrawCards = (
+  cardsInDeck: number,
+  numberOfPlayers: 2 | 4
 ): boolean => {
-  // Em jogo de 2, compra enquanto houver cartas
-  // Em jogo de 4, não compra (todas as cartas são distribuídas no início)
-  return numeroJogadores === 2 && cartasNoBaralho > 0;
+  // In 2-player, draw while there are cards
+  // In 4-player, don't draw (all cards are distributed at start)
+  return numberOfPlayers === 2 && cardsInDeck > 0;
 };

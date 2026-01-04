@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Card, Suit, Rank } from '@/lib/bisca/types';
-import { createCard, DECK_RANKS, DECK_SUITS } from '@/lib/bisca/deck';
+import { criarCard, VALORES_BARALHO, NAIPES_BARALHO } from '@/lib/bisca/deck';
 
 type CardSelectorProps = {
   onSelect: (carta: Card) => void;
@@ -11,28 +11,28 @@ type CardSelectorProps = {
 };
 
 export const CardSelector = ({ onSelect, onCancel, title }: CardSelectorProps) => {
-  const [selectedRank, setSelectedRank] = useState<Rank | null>(null);
+  const [valorSelecionado, setRankSelecionado] = useState<Rank | null>(null);
 
   const handleSuitClick = (naipe: Suit): void => {
-    if (selectedRank) {
-      const carta = createCard(selectedRank, naipe);
+    if (valorSelecionado) {
+      const carta = criarCard(valorSelecionado, naipe);
       onSelect(carta);
-      setSelectedRank(null);
+      setRankSelecionado(null);
     }
   };
 
   const simbolos: Record<Suit, string> = {
-    [Suit.HEARTS]: '♥',
-    [Suit.DIAMONDS]: '♦',
-    [Suit.SPADES]: '♠',
-    [Suit.CLUBS]: '♣',
+    [Suit.COPAS]: '♥',
+    [Suit.OUROS]: '♦',
+    [Suit.ESPADAS]: '♠',
+    [Suit.PAUS]: '♣',
   };
 
   const cores: Record<Suit, string> = {
-    [Suit.HEARTS]: 'text-red-600 hover:bg-red-100',
-    [Suit.DIAMONDS]: 'text-red-600 hover:bg-red-100',
-    [Suit.SPADES]: 'text-gray-900 hover:bg-gray-100',
-    [Suit.CLUBS]: 'text-gray-900 hover:bg-gray-100',
+    [Suit.COPAS]: 'text-red-600 hover:bg-red-100',
+    [Suit.OUROS]: 'text-red-600 hover:bg-red-100',
+    [Suit.ESPADAS]: 'text-gray-900 hover:bg-gray-100',
+    [Suit.PAUS]: 'text-gray-900 hover:bg-gray-100',
   };
 
   return (
@@ -52,18 +52,18 @@ export const CardSelector = ({ onSelect, onCancel, title }: CardSelectorProps) =
           {/* Etapa 1: Selecionar Rank */}
           <div>
             <p className="text-sm font-medium text-gray-700 mb-2">
-              {selectedRank ? 'Agora escolha o naipe:' : '1. Escolha o valor da carta:'}
+              {valorSelecionado ? 'Agora escolha o naipe:' : '1. Escolha o valor da carta:'}
             </p>
             <div className="grid grid-cols-5 gap-2">
-              {DECK_RANKS.map((valor) => (
+              {VALORES_BARALHO.map((valor) => (
                 <button
                   key={valor}
-                  onClick={() => setSelectedRank(valor)}
+                  onClick={() => setRankSelecionado(valor)}
                   className={`
                     py-3 px-2 rounded-lg font-bold text-lg
                     transition-colors
                     ${
-                      selectedRank === valor
+                      valorSelecionado === valor
                         ? 'bg-green-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }
@@ -76,11 +76,11 @@ export const CardSelector = ({ onSelect, onCancel, title }: CardSelectorProps) =
           </div>
 
           {/* Etapa 2: Selecionar Suit */}
-          {selectedRank && (
+          {valorSelecionado && (
             <div>
               <p className="text-sm font-medium text-gray-700 mb-2">2. Escolha o naipe:</p>
               <div className="grid grid-cols-2 gap-3">
-                {DECK_SUITS.map((naipe) => (
+                {NAIPES_BARALHO.map((naipe) => (
                   <button
                     key={naipe}
                     onClick={() => handleSuitClick(naipe)}

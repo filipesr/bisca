@@ -1,230 +1,230 @@
-import { Carta, Jogador, JogadorId, Rodada } from './types';
-import { calcularPontos, TOTAL_PONTOS } from './deck';
+import { Card, Player, PlayerId, Round } from './types';
+import { calculatePoints, TOTAL_POINTS } from './deck';
 
 /**
  * Atualiza a pontuação de um jogador
  */
-export const atualizarPontuacao = (
-  jogador: Jogador,
-  cartasGanhas: Carta[]
-): Jogador => {
-  const pontos = calcularPontos(cartasGanhas);
+export const updateScore = (
+  jogador: Player,
+  wonCards: Card[]
+): Player => {
+  const points = calculatePoints(wonCards);
 
   return {
     ...jogador,
-    pontos,
-    cartasGanhas,
+    points,
+    wonCards,
   };
 };
 
 /**
- * Calcula o percentual de pontos de um jogador
+ * Calcula o percentage de points de um jogador
  */
-export const calcularPercentualPontos = (pontos: number): number => {
-  return Math.round((pontos / TOTAL_PONTOS) * 100);
+export const calculatePointsPercentage = (points: number): number => {
+  return Math.round((points / TOTAL_POINTS) * 100);
 };
 
 /**
  * Determina se um jogador está ganhando
  */
-export const estaGanhando = (
-  pontosJogador: number,
-  pontosOponente: number
+export const isWinning = (
+  playerPoints: number,
+  opponentPoints: number
 ): boolean => {
-  return pontosJogador > pontosOponente;
+  return playerPoints > opponentPoints;
 };
 
 /**
- * Calcula a diferença de pontos
+ * Calcula a diferença de points
  */
-export const calcularDiferencaPontos = (
-  pontosJogador: number,
-  pontosOponente: number
+export const calculatePointsDifference = (
+  playerPoints: number,
+  opponentPoints: number
 ): number => {
-  return pontosJogador - pontosOponente;
+  return playerPoints - opponentPoints;
 };
 
 /**
- * Calcula pontos restantes no jogo
+ * Calcula points restantes no jogo
  */
-export const calcularPontosRestantes = (
-  cartasJogadas: Carta[]
+export const calculateRemainingPoints = (
+  cartasJogadas: Card[]
 ): number => {
-  const pontosJogados = calcularPontos(cartasJogadas);
-  return TOTAL_PONTOS - pontosJogados;
+  const playedPoints = calculatePoints(cartasJogadas);
+  return TOTAL_POINTS - playedPoints;
 };
 
 /**
  * Calcula estatísticas de um jogador
  */
-export type EstatisticasJogador = {
-  pontos: number;
-  percentual: number;
-  rodadasGanhas: number;
-  totalRodadas: number;
-  taxaVitoria: number;
-  mediapontosRodadas: number;
+export type PlayerStatistics = {
+  points: number;
+  percentage: number;
+  roundsWon: number;
+  totalRounds: number;
+  winRate: number;
+  averagePointsPerRound: number;
 };
 
-export const calcularEstatisticas = (
-  jogador: Jogador,
-  rodadas: Rodada[]
-): EstatisticasJogador => {
-  const rodadasGanhas = rodadas.filter(
-    (r) => r.vencedor === jogador.id && r.completa
+export const calculateStatistics = (
+  jogador: Player,
+  rodadas: Round[]
+): PlayerStatistics => {
+  const roundsWon = rodadas.filter(
+    (r) => r.winner === jogador.id && r.complete
   ).length;
 
-  const rodadasCompletas = rodadas.filter((r) => r.completa).length;
+  const completedRounds = rodadas.filter((r) => r.complete).length;
 
-  const taxaVitoria = rodadasCompletas > 0
-    ? Math.round((rodadasGanhas / rodadasCompletas) * 100)
+  const winRate = completedRounds > 0
+    ? Math.round((roundsWon / completedRounds) * 100)
     : 0;
 
-  const mediapontosRodadas = rodadasGanhas > 0
-    ? Math.round(jogador.pontos / rodadasGanhas)
+  const averagePointsPerRound = roundsWon > 0
+    ? Math.round(jogador.points / roundsWon)
     : 0;
 
   return {
-    pontos: jogador.pontos,
-    percentual: calcularPercentualPontos(jogador.pontos),
-    rodadasGanhas,
-    totalRodadas: rodadasCompletas,
-    taxaVitoria,
-    mediapontosRodadas,
+    points: jogador.points,
+    percentage: calculatePointsPercentage(jogador.points),
+    roundsWon,
+    totalRounds: completedRounds,
+    winRate,
+    averagePointsPerRound,
   };
 };
 
 /**
  * Calcula placar para jogo de 2 jogadores
  */
-export type Placar2Jogadores = {
-  jogador1: EstatisticasJogador;
-  jogador2: EstatisticasJogador;
-  diferenca: number;
-  lider: JogadorId | null;
-  pontosRestantes: number;
+export type TwoPlayerScore = {
+  jogador1: PlayerStatistics;
+  jogador2: PlayerStatistics;
+  difference: number;
+  leader: PlayerId | null;
+  remainingPoints: number;
 };
 
-export const calcularPlacar2Jogadores = (
-  jogador1: Jogador,
-  jogador2: Jogador,
-  rodadas: Rodada[],
-  cartasJogadas: Carta[]
-): Placar2Jogadores => {
-  const stats1 = calcularEstatisticas(jogador1, rodadas);
-  const stats2 = calcularEstatisticas(jogador2, rodadas);
+export const calcularTwoPlayerScore = (
+  jogador1: Player,
+  jogador2: Player,
+  rodadas: Round[],
+  cartasJogadas: Card[]
+): TwoPlayerScore => {
+  const stats1 = calculateStatistics(jogador1, rodadas);
+  const stats2 = calculateStatistics(jogador2, rodadas);
 
-  const diferenca = calcularDiferencaPontos(jogador1.pontos, jogador2.pontos);
+  const difference = calculatePointsDifference(jogador1.points, jogador2.points);
 
-  let lider: JogadorId | null = null;
-  if (jogador1.pontos > jogador2.pontos) lider = 'jogador1';
-  else if (jogador2.pontos > jogador1.pontos) lider = 'jogador2';
+  let leader: PlayerId | null = null;
+  if (jogador1.points > jogador2.points) leader = 'jogador1';
+  else if (jogador2.points > jogador1.points) leader = 'jogador2';
 
   return {
     jogador1: stats1,
     jogador2: stats2,
-    diferenca: Math.abs(diferenca),
-    lider,
-    pontosRestantes: calcularPontosRestantes(cartasJogadas),
+    difference: Math.abs(difference),
+    leader,
+    remainingPoints: calculateRemainingPoints(cartasJogadas),
   };
 };
 
 /**
  * Calcula placar para jogo de 4 jogadores (equipes)
  */
-export type Placar4Jogadores = {
-  equipe1: {
-    pontos: number;
-    percentual: number;
-    jogadores: [EstatisticasJogador, EstatisticasJogador];
+export type FourPlayerScore = {
+  team1: {
+    points: number;
+    percentage: number;
+    jogadores: [PlayerStatistics, PlayerStatistics];
   };
-  equipe2: {
-    pontos: number;
-    percentual: number;
-    jogadores: [EstatisticasJogador, EstatisticasJogador];
+  team2: {
+    points: number;
+    percentage: number;
+    jogadores: [PlayerStatistics, PlayerStatistics];
   };
-  diferenca: number;
-  lider: 'equipe1' | 'equipe2' | null;
-  pontosRestantes: number;
+  difference: number;
+  leader: 'team1' | 'team2' | null;
+  remainingPoints: number;
 };
 
-export const calcularPlacar4Jogadores = (
-  jogadores: Record<JogadorId, Jogador>,
-  rodadas: Rodada[],
-  cartasJogadas: Carta[]
-): Placar4Jogadores => {
-  const stats1 = calcularEstatisticas(jogadores['jogador1']!, rodadas);
-  const stats2 = calcularEstatisticas(jogadores['jogador2']!, rodadas);
-  const stats3 = calcularEstatisticas(jogadores['jogador3']!, rodadas);
-  const stats4 = calcularEstatisticas(jogadores['jogador4']!, rodadas);
+export const calcularFourPlayerScore = (
+  jogadores: Record<PlayerId, Player>,
+  rodadas: Round[],
+  cartasJogadas: Card[]
+): FourPlayerScore => {
+  const stats1 = calculateStatistics(jogadores['jogador1']!, rodadas);
+  const stats2 = calculateStatistics(jogadores['jogador2']!, rodadas);
+  const stats3 = calculateStatistics(jogadores['jogador3']!, rodadas);
+  const stats4 = calculateStatistics(jogadores['jogador4']!, rodadas);
 
-  const pontosEquipe1 = (jogadores['jogador1']?.pontos ?? 0) + (jogadores['jogador3']?.pontos ?? 0);
-  const pontosEquipe2 = (jogadores['jogador2']?.pontos ?? 0) + (jogadores['jogador4']?.pontos ?? 0);
+  const teamPoints1 = (jogadores['jogador1']?.points ?? 0) + (jogadores['jogador3']?.points ?? 0);
+  const teamPoints2 = (jogadores['jogador2']?.points ?? 0) + (jogadores['jogador4']?.points ?? 0);
 
-  const diferenca = Math.abs(pontosEquipe1 - pontosEquipe2);
+  const difference = Math.abs(teamPoints1 - teamPoints2);
 
-  let lider: 'equipe1' | 'equipe2' | null = null;
-  if (pontosEquipe1 > pontosEquipe2) lider = 'equipe1';
-  else if (pontosEquipe2 > pontosEquipe1) lider = 'equipe2';
+  let leader: 'team1' | 'team2' | null = null;
+  if (teamPoints1 > teamPoints2) leader = 'team1';
+  else if (teamPoints2 > teamPoints1) leader = 'team2';
 
   return {
-    equipe1: {
-      pontos: pontosEquipe1,
-      percentual: calcularPercentualPontos(pontosEquipe1),
+    team1: {
+      points: teamPoints1,
+      percentage: calculatePointsPercentage(teamPoints1),
       jogadores: [stats1, stats3],
     },
-    equipe2: {
-      pontos: pontosEquipe2,
-      percentual: calcularPercentualPontos(pontosEquipe2),
+    team2: {
+      points: teamPoints2,
+      percentage: calculatePointsPercentage(teamPoints2),
       jogadores: [stats2, stats4],
     },
-    diferenca,
-    lider,
-    pontosRestantes: calcularPontosRestantes(cartasJogadas),
+    difference,
+    leader,
+    remainingPoints: calculateRemainingPoints(cartasJogadas),
   };
 };
 
 /**
  * Determina se ainda é possível vencer
  */
-export const podeComemorVitoria = (
-  pontos: number,
-  pontosOponente: number,
-  pontosRestantes: number
+export const canCelebrateVictory = (
+  points: number,
+  opponentPoints: number,
+  remainingPoints: number
 ): boolean => {
-  // Já venceu se tem mais da metade dos pontos totais
-  const metadePontos = TOTAL_PONTOS / 2;
-  if (pontos > metadePontos) return true;
+  // Já venceu se tem mais da metade dos points totais
+  const halfPoints = TOTAL_POINTS / 2;
+  if (points > halfPoints) return true;
 
-  // Ainda pode vencer se somar todos os pontos restantes
-  return pontos + pontosRestantes > pontosOponente;
+  // Ainda pode vencer se somar todos os points restantes
+  return points + remainingPoints > opponentPoints;
 };
 
 /**
- * Calcula probabilidade de vitória baseada em pontos
+ * Calcula probability de vitória baseada em points
  */
-export const calcularProbabilidadeVitoria = (
-  pontos: number,
-  pontosOponente: number,
-  pontosRestantes: number
+export const calculateWinProbability = (
+  points: number,
+  opponentPoints: number,
+  remainingPoints: number
 ): number => {
   // Se já é impossível vencer
-  if (!podeComemorVitoria(pontos, pontosOponente, pontosRestantes)) {
+  if (!canCelebrateVictory(points, opponentPoints, remainingPoints)) {
     return 0;
   }
 
   // Se já venceu (tem mais que a metade)
-  if (pontos > TOTAL_PONTOS / 2) {
+  if (points > TOTAL_POINTS / 2) {
     return 100;
   }
 
-  // Calcula probabilidade baseada na diferença e pontos restantes
-  const diferenca = pontos - pontosOponente;
-  const fatorDiferenca = diferenca / pontosRestantes;
+  // Calcula probability baseada na diferença e points restantes
+  const difference = points - opponentPoints;
+  const differenceFactor = difference / remainingPoints;
 
   // Normaliza entre 0 e 100
-  let probabilidade = 50 + (fatorDiferenca * 50);
-  probabilidade = Math.max(0, Math.min(100, probabilidade));
+  let probability = 50 + (differenceFactor * 50);
+  probability = Math.max(0, Math.min(100, probability));
 
-  return Math.round(probabilidade);
+  return Math.round(probability);
 };

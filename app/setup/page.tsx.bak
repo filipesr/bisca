@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGameStore } from '@/lib/store/game-store';
-import { GameConfiguration, PlayerId } from '@/lib/bisca/types';
+import { ConfiguracaoJogo, JogadorId } from '@/lib/bisca/types';
 
 const SetupPage = () => {
   const router = useRouter();
@@ -28,10 +28,10 @@ const SetupPage = () => {
       );
     }
 
-    const configuracao: GameConfiguration = {
+    const configuracao: ConfiguracaoJogo = {
       numeroJogadores,
       nomesJogadores,
-      idUsuario: 'player1' as PlayerId,
+      idUsuario: 'jogador1' as JogadorId,
     };
 
     const resultado = iniciarJogo(configuracao);

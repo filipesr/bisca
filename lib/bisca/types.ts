@@ -1,152 +1,184 @@
 /**
- * Tipos para o jogo de Bisca
+ * Types for the Bisca card game
  */
 
-// Naipes do baralho
-export enum Naipe {
-  COPAS = 'copas',
-  OUROS = 'ouros',
-  ESPADAS = 'espadas',
-  PAUS = 'paus',
+/**
+ * Card suits in a Bisca deck
+ */
+export enum Suit {
+  HEARTS = 'hearts',
+  DIAMONDS = 'diamonds',
+  SPADES = 'spades',
+  CLUBS = 'clubs',
 }
 
-// Valores das cartas (sem 8, 9, 10)
-export enum Valor {
-  AS = 'A',
-  SETE = '7',
-  REI = 'K',
-  VALETE = 'J',
-  DAMA = 'Q',
-  SEIS = '6',
-  CINCO = '5',
-  QUATRO = '4',
-  TRES = '3',
-  DOIS = '2',
+/**
+ * Card values in Bisca (without 8, 9, 10)
+ */
+export enum Rank {
+  ACE = 'A',
+  SEVEN = '7',
+  KING = 'K',
+  JACK = 'J',
+  QUEEN = 'Q',
+  SIX = '6',
+  FIVE = '5',
+  FOUR = '4',
+  THREE = '3',
+  TWO = '2',
 }
 
-// Representação de uma carta
-export type Carta = {
-  valor: Valor;
-  naipe: Naipe;
-  pontos: number;
+/**
+ * Representation of a playing card
+ */
+export type Card = {
+  rank: Rank;
+  suit: Suit;
+  points: number;
 };
 
-// ID do jogador
-export type JogadorId = 'jogador1' | 'jogador2' | 'jogador3' | 'jogador4';
+/**
+ * Player identifier
+ */
+export type PlayerId = 'player1' | 'player2' | 'player3' | 'player4';
 
-// Informações de um jogador
-export type Jogador = {
-  id: JogadorId;
-  nome: string;
-  pontos: number;
-  cartasGanhas: Carta[];
-  numeroCartasNaMao: number;
-  isUsuario: boolean; // true se é o usuário principal
+/**
+ * Player information
+ */
+export type Player = {
+  id: PlayerId;
+  name: string;
+  points: number;
+  wonCards: Card[];
+  numberOfCardsInHand: number;
+  isUser: boolean; // true if this is the main user
 };
 
-// Configuração do jogo
-export type ConfiguracaoJogo = {
-  numeroJogadores: 2 | 4;
-  nomesJogadores: string[];
-  idUsuario: JogadorId;
+/**
+ * Game configuration
+ */
+export type GameConfiguration = {
+  numberOfPlayers: 2 | 4;
+  playerNames: string[];
+  userId: PlayerId;
 };
 
-// Carta jogada em uma rodada
-export type CartaJogada = {
-  carta: Carta;
-  jogadorId: JogadorId;
-  ordem: number; // ordem de jogada na rodada (1, 2, 3, 4)
+/**
+ * Card played in a round
+ */
+export type PlayedCard = {
+  card: Card;
+  playerId: PlayerId;
+  order: number; // play order in the round (1, 2, 3, 4)
 };
 
-// Rodada do jogo
-export type Rodada = {
-  numero: number;
-  cartasJogadas: CartaJogada[];
-  vencedor: JogadorId | null;
-  pontosGanhos: number;
-  completa: boolean;
+/**
+ * Game round
+ */
+export type Round = {
+  number: number;
+  playedCards: PlayedCard[];
+  winner: PlayerId | null;
+  pointsWon: number;
+  complete: boolean;
 };
 
-// Estilo de jogo detectado
-export enum EstiloJogo {
-  AGRESSIVO = 'agressivo',
-  DEFENSIVO = 'defensivo',
-  EQUILIBRADO = 'equilibrado',
-  INDETERMINADO = 'indeterminado',
+/**
+ * Detected play style
+ */
+export enum PlayStyle {
+  AGGRESSIVE = 'aggressive',
+  DEFENSIVE = 'defensive',
+  BALANCED = 'balanced',
+  UNDETERMINED = 'undetermined',
 }
 
-// Análise de estilo de um jogador
-export type AnaliseEstilo = {
-  jogadorId: JogadorId;
-  estilo: EstiloJogo;
-  confianca: number; // 0-100
-  padroes: {
-    jogadasAgressivas: number;
-    jogadasDefensivas: number;
-    totalJogadas: number;
+/**
+ * Player style analysis
+ */
+export type StyleAnalysis = {
+  playerId: PlayerId;
+  style: PlayStyle;
+  confidence: number; // 0-100
+  patterns: {
+    aggressivePlays: number;
+    defensivePlays: number;
+    totalPlays: number;
   };
 };
 
-// Nível de risco de uma jogada
-export enum NivelRisco {
-  MUITO_BAIXO = 'muito_baixo',
-  BAIXO = 'baixo',
-  MEDIO = 'medio',
-  ALTO = 'alto',
-  MUITO_ALTO = 'muito_alto',
+/**
+ * Risk level of a play
+ */
+export enum RiskLevel {
+  VERY_LOW = 'very_low',
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  VERY_HIGH = 'very_high',
 }
 
-// Recomendação de jogada
-export type Recomendacao = {
-  carta: Carta;
-  prioridade: number; // 0-100 (quanto maior, mais recomendada)
-  motivo: string;
-  nivelRisco: NivelRisco;
-  probabilidadeVitoria: number; // 0-100
-  detalhes: {
-    forcaDaMao: number; // 0-100
-    cartasRestantes: number;
-    probabilidadeTrunfo: number; // chance do oponente ter trunfo
-    pontosEmJogo: number;
+/**
+ * Play recommendation
+ */
+export type Recommendation = {
+  card: Card;
+  priority: number; // 0-100 (higher is more recommended)
+  reason: string;
+  riskLevel: RiskLevel;
+  winProbability: number; // 0-100
+  details: {
+    handStrength: number; // 0-100
+    remainingCards: number;
+    trumpProbability: number; // chance of opponent having trump
+    pointsAtStake: number;
   };
 };
 
-// Status do jogo
-export enum StatusJogo {
-  CONFIGURACAO = 'configuracao',
-  EM_ANDAMENTO = 'em_andamento',
-  FINALIZADO = 'finalizado',
+/**
+ * Game status
+ */
+export enum GameStatus {
+  SETUP = 'setup',
+  IN_PROGRESS = 'in_progress',
+  FINISHED = 'finished',
 }
 
-// Estado completo do jogo
-export type EstadoJogo = {
-  status: StatusJogo;
-  configuracao: ConfiguracaoJogo;
-  jogadores: Record<JogadorId, Jogador>;
-  trunfo: Carta | null;
-  rodadas: Rodada[];
-  rodadaAtual: Rodada | null;
-  proximoJogador: JogadorId | null;
-  cartasNoBaralho: number;
-  cartasJogadas: Carta[];
-  maoUsuario: Carta[];
-  vencedor: JogadorId | null;
-  analisesEstilo: Record<JogadorId, AnaliseEstilo>;
-  recomendacaoAtual: Recomendacao | null;
+/**
+ * Complete game state
+ */
+export type GameState = {
+  status: GameStatus;
+  configuration: GameConfiguration;
+  players: Record<PlayerId, Player>;
+  trump: Card | null;
+  rounds: Round[];
+  currentRound: Round | null;
+  nextPlayer: PlayerId | null;
+  cardsInDeck: number;
+  playedCards: Card[];
+  userHand: Card[];
+  winner: PlayerId | null;
+  styleAnalyses: Record<PlayerId, StyleAnalysis>;
+  currentRecommendation: Recommendation | null;
 };
 
-// Ação do usuário
-export type AcaoUsuario =
-  | { tipo: 'INICIAR_JOGO'; configuracao: ConfiguracaoJogo }
-  | { tipo: 'REGISTRAR_CARTA_JOGADA'; jogadorId: JogadorId; carta: Carta }
-  | { tipo: 'ATUALIZAR_MAO_USUARIO'; cartas: Carta[] }
-  | { tipo: 'SOLICITAR_RECOMENDACAO' }
-  | { tipo: 'FINALIZAR_RODADA' }
-  | { tipo: 'RESETAR_JOGO' };
+/**
+ * User action
+ */
+export type UserAction =
+  | { type: 'START_GAME'; configuration: GameConfiguration }
+  | { type: 'REGISTER_PLAYED_CARD'; playerId: PlayerId; card: Card }
+  | { type: 'UPDATE_USER_HAND'; cards: Card[] }
+  | { type: 'REQUEST_RECOMMENDATION' }
+  | { type: 'FINALIZE_ROUND' }
+  | { type: 'RESET_GAME' };
 
-// Resultado de uma ação
-export type ResultadoAcao = {
-  sucesso: boolean;
-  mensagem?: string;
-  erro?: string;
+/**
+ * Action result
+ */
+export type ActionResult = {
+  success: boolean;
+  message?: string;
+  error?: string;
 };
