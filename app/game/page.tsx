@@ -240,6 +240,43 @@ const GamePage = () => {
           </div>
         )}
 
+        {/* Registrar Jogadas dos Oponentes - SEMPRE VISÍVEL */}
+        {!rodadaCompleta && (
+          <div className="bg-white rounded-xl shadow-lg p-4">
+            <h3 className="font-semibold text-gray-900 mb-3">Registrar Jogadas</h3>
+            <p className="text-sm text-gray-600 mb-3">
+              Registre as cartas jogadas pelos oponentes conforme eles jogam
+            </p>
+            <div className="flex flex-col gap-2">
+              {jogadores
+                .filter((j) => j.id !== usuarioId)
+                .map((jogador) => {
+                  const isNextPlayer = jogador.id === state.nextPlayer;
+
+                  return (
+                    <button
+                      key={jogador.id}
+                      onClick={() => {
+                        setJogadorSelecionado(jogador.id);
+                        setMostrarSeletorJogada(true);
+                      }}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors text-left ${
+                        isNextPlayer
+                          ? 'bg-blue-600 text-white hover:bg-blue-700'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      <span className="flex items-center justify-between">
+                        <span>{jogador.name}</span>
+                        {isNextPlayer && <span className="text-sm">⬅️ Próximo</span>}
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+          </div>
+        )}
+
         {/* Finalizar Rodada */}
         {rodadaCompleta && (
           <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4">
