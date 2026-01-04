@@ -1,0 +1,112 @@
+'use client';
+
+import { useState } from 'react';
+import { Carta, Naipe, Valor } from '@/lib/bisca/types';
+import { criarCarta, VALORES_BARALHO, NAIPES_BARALHO } from '@/lib/bisca/deck';
+
+type CardSelectorProps = {
+  onSelect: (carta: Carta) => void;
+  onCancel: () => void;
+  title: string;
+};
+
+export const CardSelector = ({ onSelect, onCancel, title }: CardSelectorProps) => {
+  const [valorSelecionado, setValorSelecionado] = useState<Valor | null>(null);
+
+  const handleNaipeClick = (naipe: Naipe): void => {
+    if (valorSelecionado) {
+      const carta = criarCarta(valorSelecionado, naipe);
+      onSelect(carta);
+      setValorSelecionado(null);
+    }
+  };
+
+  const simbolos: Record<Naipe, string> = {
+    [Naipe.COPAS]: '♥',
+    [Naipe.OUROS]: '♦',
+    [Naipe.ESPADAS]: '♠',
+    [Naipe.PAUS]: '♣',
+  };
+
+  const cores: Record<Naipe, string> = {
+    [Naipe.COPAS]: 'text-red-600 hover:bg-red-100',
+    [Naipe.OUROS]: 'text-red-600 hover:bg-red-100',
+    [Naipe.ESPADAS]: 'text-gray-900 hover:bg-gray-100',
+    [Naipe.PAUS]: 'text-gray-900 hover:bg-gray-100',
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-bold text-gray-900">{title}</h3>
+          <button
+            onClick={onCancel}
+            className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {/* Etapa 1: Selecionar Valor */}
+          <div>
+            <p className="text-sm font-medium text-gray-700 mb-2">
+              {valorSelecionado ? 'Agora escolha o naipe:' : '1. Escolha o valor da carta:'}
+            </p>
+            <div className="grid grid-cols-5 gap-2">
+              {VALORES_BARALHO.map((valor) => (
+                <button
+                  key={valor}
+                  onClick={() => setValorSelecionado(valor)}
+                  className={`
+                    py-3 px-2 rounded-lg font-bold text-lg
+                    transition-colors
+                    ${
+                      valorSelecionado === valor
+                        ? 'bg-green-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }
+                  `}
+                >
+                  {valor}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Etapa 2: Selecionar Naipe */}
+          {valorSelecionado && (
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-2">2. Escolha o naipe:</p>
+              <div className="grid grid-cols-2 gap-3">
+                {NAIPES_BARALHO.map((naipe) => (
+                  <button
+                    key={naipe}
+                    onClick={() => handleNaipeClick(naipe)}
+                    className={`
+                      py-4 rounded-lg font-bold text-4xl
+                      transition-colors border-2 border-gray-300
+                      ${cores[naipe] ?? 'hover:bg-gray-100'}
+                    `}
+                  >
+                    {simbolos[naipe]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="pt-4 border-t border-gray-200">
+          <button
+            onClick={onCancel}
+            className="w-full py-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

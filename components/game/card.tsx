@@ -1,0 +1,68 @@
+import { Carta, Naipe } from '@/lib/bisca/types';
+
+type CardProps = {
+  carta: Carta;
+  onClick?: () => void;
+  selected?: boolean;
+  recommended?: boolean;
+  small?: boolean;
+};
+
+const simbolos: Record<Naipe, { simbolo: string; cor: string }> = {
+  [Naipe.COPAS]: { simbolo: '♥', cor: 'text-red-600' },
+  [Naipe.OUROS]: { simbolo: '♦', cor: 'text-red-600' },
+  [Naipe.ESPADAS]: { simbolo: '♠', cor: 'text-gray-900' },
+  [Naipe.PAUS]: { simbolo: '♣', cor: 'text-gray-900' },
+};
+
+export const Card = ({ carta, onClick, selected, recommended, small }: CardProps) => {
+  const { simbolo, cor } = simbolos[carta.naipe] ?? { simbolo: '?', cor: 'text-gray-500' };
+
+  const tamanho = small ? 'w-16 h-24' : 'w-20 h-32';
+  const textoTamanho = small ? 'text-sm' : 'text-lg';
+  const simboloTamanho = small ? 'text-2xl' : 'text-4xl';
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={!onClick}
+      className={`
+        ${tamanho}
+        bg-white
+        rounded-lg
+        shadow-lg
+        border-2
+        ${selected ? 'border-green-500 ring-2 ring-green-300' : 'border-gray-300'}
+        ${recommended ? 'border-yellow-500 ring-2 ring-yellow-300' : ''}
+        ${onClick ? 'cursor-pointer hover:scale-105 hover:shadow-xl' : 'cursor-default'}
+        transition-all
+        flex
+        flex-col
+        items-center
+        justify-between
+        p-2
+        relative
+      `}
+    >
+      {/* Valor no topo */}
+      <div className={`${textoTamanho} font-bold ${cor}`}>{carta.valor}</div>
+
+      {/* Símbolo no centro */}
+      <div className={`${simboloTamanho} ${cor}`}>{simbolo}</div>
+
+      {/* Pontos no rodapé */}
+      {carta.pontos > 0 && (
+        <div className="text-xs font-semibold text-gray-600 bg-yellow-100 px-1.5 py-0.5 rounded">
+          {carta.pontos}
+        </div>
+      )}
+
+      {/* Indicador de recomendada */}
+      {recommended && (
+        <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+          ★
+        </div>
+      )}
+    </button>
+  );
+};

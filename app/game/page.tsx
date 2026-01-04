@@ -1,0 +1,307 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useGameStore } from '@/lib/store/game-store';
+import { Carta, JogadorId, StatusJogo } from '@/lib/bisca/types';
+import { Card } from '@/components/game/card';
+import { CardSelector } from '@/components/game/card-selector';
+import { cartaParaString } from '@/lib/bisca/deck';
+import { descreverEstilo } from '@/lib/bisca/style-analyzer';
+
+const GamePage = () => {
+  const router = useRouter();
+  const {
+    estado,
+    registrarCartaJogada,
+    atualizarMaoUsuario,
+    solicitarRecomendacao,
+    finalizarRodada,
+    resetarJogo,
+  } = useGameStore();
+
+  const [mostrarSeletorMao, setMostrarSeletorMao] = useState(false);
+  const [mostrarSeletorJogada, setMostrarSeletorJogada] = useState(false);
+  const [jogadorSelecionado, setJogadorSelecionado] = useState<JogadorId | null>(null);
+  const [mensagem, setMensagem] = useState('');
+
+  useEffect(() => {
+    if (estado.status === StatusJogo.CONFIGURACAO) {
+      router.push('/setup');
+    }
+  }, [estado.status, router]);
+
+  const handleAdicionarCartaMao = (carta: Carta): void => {
+    const novaMao = [...estado.maoUsuario, carta];
+    atualizarMaoUsuario(novaMao);
+    setMensagem(`${cartaParaString(carta)} adicionada à sua mão`);
+    setTimeout(() => setMensagem(''), 3000);
+  };
+
+  const handleRemoverCartaMao = (carta: Carta): void => {
+    const novaMao = estado.maoUsuario.filter(
+      (c) => !(c.valor === carta.valor && c.naipe === carta.naipe)
+    );
+    atualizarMaoUsuario(novaMao);
+    setMensagem(`${cartaParaString(carta)} removida da mão`);
+    setTimeout(() => setMensagem(''), 3000);
+  };
+
+  const handleRegistrarJogada = (carta: Carta): void => {
+    if (!jogadorSelecionado) return;
+
+    const resultado = registrarCartaJogada(jogadorSelecionado, carta);
+    setMensagem(resultado.mensagem ?? resultado.erro ?? '');
+    setMostrarSeletorJogada(false);
+    setJogadorSelecionado(null);
+    setTimeout(() => setMensagem(''), 3000);
+  };
+
+  const handleSolicitarRecomendacao = (): void => {
+    const resultado = solicitarRecomendacao();
+    setMensagem(resultado.mensagem ?? resultado.erro ?? '');
+    setTimeout(() => setMensagem(''), 5000);
+  };
+
+  const handleFinalizarRodada = (): void => {
+    const resultado = finalizarRodada();
+    setMensagem(resultado.mensagem ?? resultado.erro ?? '');
+    setTimeout(() => setMensagem(''), 3000);
+  };
+
+  const handleResetar = (): void => {
+    if (confirm('Tem certeza que deseja resetar o jogo?')) {
+      resetarJogo();
+      router.push('/');
+    }
+  };
+
+  const rodadaCompleta =
+    estado.rodadaAtual &&
+    estado.rodadaAtual.cartasJogadas.length === estado.configuracao.numeroJogadores;
+
+  const jogadores = Object.values(estado.jogadores);
+  const usuarioId = estado.configuracao.idUsuario;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 p-4">
+      <div className="max-w-6xl mx-auto space-y-4">
+        {/* Header */}
+        <div className="bg-white rounded-xl shadow-lg p-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Bisca Assistant</h1>
+            <p className="text-sm text-gray-600">
+              Rodada {estado.rodadaAtual?.numero ?? '-'} | Próximo:{' '}
+              {estado.proximoJogador ? estado.jogadores[estado.proximoJogador]?.nome : '-'}
+            </p>
+          </div>
+          <button
+            onClick={handleResetar}
+            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors"
+          >
+            Resetar
+          </button>
+        </div>
+
+        {/* Mensagem */}
+        {mensagem && (
+          <div className="bg-blue-500 text-white px-4 py-3 rounded-lg shadow-lg">
+            {mensagem}
+          </div>
+        )}
+
+        {/* Trunfo e Placar */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Trunfo */}
+          <div className="bg-white rounded-xl shadow-lg p-4">
+            <h3 className="font-semibold text-gray-900 mb-3">Trunfo</h3>
+            {estado.trunfo ? (
+              <div className="flex justify-center">
+                <Card carta={estado.trunfo} small />
+              </div>
+            ) : (
+              <p className="text-gray-500 text-center">Nenhum trunfo definido</p>
+            )}
+          </div>
+
+          {/* Placar */}
+          <div className="bg-white rounded-xl shadow-lg p-4">
+            <h3 className="font-semibold text-gray-900 mb-3">Placar</h3>
+            <div className="space-y-2">
+              {jogadores.map((jogador) => (
+                <div
+                  key={jogador.id}
+                  className={`flex items-center justify-between p-2 rounded-lg ${
+                    jogador.id === usuarioId ? 'bg-green-100' : 'bg-gray-50'
+                  }`}
+                >
+                  <span className="font-medium">{jogador.nome}</span>
+                  <span className="font-bold text-green-600">{jogador.pontos} pts</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Rodada Atual */}
+        <div className="bg-white rounded-xl shadow-lg p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900">Cartas Jogadas nesta Rodada</h3>
+            {rodadaCompleta && (
+              <button
+                onClick={handleFinalizarRodada}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Finalizar Rodada
+              </button>
+            )}
+          </div>
+
+          {estado.rodadaAtual && estado.rodadaAtual.cartasJogadas.length > 0 ? (
+            <div className="flex flex-wrap gap-4 justify-center">
+              {estado.rodadaAtual.cartasJogadas.map((cj) => (
+                <div key={`${cj.jogadorId}-${cj.ordem}`} className="text-center">
+                  <Card carta={cj.carta} />
+                  <p className="text-xs font-medium text-gray-600 mt-2">
+                    {estado.jogadores[cj.jogadorId]?.nome}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center">Nenhuma carta jogada ainda</p>
+          )}
+
+          {/* Botões para Registrar Jogadas */}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {jogadores
+              .filter((j) => j.id !== usuarioId)
+              .map((jogador) => (
+                <button
+                  key={jogador.id}
+                  onClick={() => {
+                    setJogadorSelecionado(jogador.id);
+                    setMostrarSeletorJogada(true);
+                  }}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+                >
+                  Registrar jogada de {jogador.nome}
+                </button>
+              ))}
+          </div>
+        </div>
+
+        {/* Minha Mão */}
+        <div className="bg-white rounded-xl shadow-lg p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900">Minha Mão</h3>
+            <button
+              onClick={() => setMostrarSeletorMao(true)}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+            >
+              + Adicionar Carta
+            </button>
+          </div>
+
+          {estado.maoUsuario.length > 0 ? (
+            <div className="flex flex-wrap gap-4 justify-center">
+              {estado.maoUsuario.map((carta, index) => (
+                <div key={index} onClick={() => handleRemoverCartaMao(carta)}>
+                  <Card
+                    carta={carta}
+                    onClick={() => handleRemoverCartaMao(carta)}
+                    recommended={
+                      estado.recomendacaoAtual?.carta.valor === carta.valor &&
+                      estado.recomendacaoAtual?.carta.naipe === carta.naipe
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center">
+              Adicione as cartas da sua mão usando o botão acima
+            </p>
+          )}
+
+          {estado.maoUsuario.length > 0 && (
+            <div className="mt-4">
+              <button
+                onClick={handleSolicitarRecomendacao}
+                className="w-full px-4 py-3 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                ⭐ Solicitar Recomendação
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Recomendação */}
+        {estado.recomendacaoAtual && (
+          <div className="bg-yellow-50 border-2 border-yellow-400 rounded-xl shadow-lg p-4">
+            <h3 className="font-semibold text-gray-900 mb-3">💡 Recomendação</h3>
+            <div className="space-y-2">
+              <div className="flex items-center gap-4">
+                <Card carta={estado.recomendacaoAtual.carta} small />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">
+                    {estado.recomendacaoAtual.motivo}
+                  </p>
+                  <div className="flex gap-4 mt-2 text-xs text-gray-600">
+                    <span>Prioridade: {estado.recomendacaoAtual.prioridade}/100</span>
+                    <span>Risco: {estado.recomendacaoAtual.nivelRisco}</span>
+                    <span>
+                      Prob. Vitória: {estado.recomendacaoAtual.probabilidadeVitoria}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Análises de Estilo */}
+        <div className="bg-white rounded-xl shadow-lg p-4">
+          <h3 className="font-semibold text-gray-900 mb-3">Análise de Estilo dos Jogadores</h3>
+          <div className="space-y-2">
+            {Object.values(estado.analisesEstilo).map((analise) => (
+              <div key={analise.jogadorId} className="p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">
+                    {estado.jogadores[analise.jogadorId]?.nome}
+                  </span>
+                  <span className="text-sm font-semibold text-green-600">
+                    {analise.estilo}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-600 mt-1">{descreverEstilo(analise)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Modals */}
+      {mostrarSeletorMao && (
+        <CardSelector
+          title="Adicionar Carta à Mão"
+          onSelect={handleAdicionarCartaMao}
+          onCancel={() => setMostrarSeletorMao(false)}
+        />
+      )}
+
+      {mostrarSeletorJogada && jogadorSelecionado && (
+        <CardSelector
+          title={`Registrar jogada de ${estado.jogadores[jogadorSelecionado]?.nome}`}
+          onSelect={handleRegistrarJogada}
+          onCancel={() => {
+            setMostrarSeletorJogada(false);
+            setJogadorSelecionado(null);
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+export default GamePage;
