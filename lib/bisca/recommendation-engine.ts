@@ -1,344 +1,344 @@
 import {
-  Carta,
-  EstadoJogo,
-  NivelRisco,
-  Recomendacao,
+  Card,
+  GameState,
+  RiskLevel,
+  Recommendation,
 } from './types';
 import {
-  FORCA_CARTA,
-  PONTOS_CARTA,
-  isTrunfo,
-  compararCartas,
-  criarBaralho,
-  encontrarCarta,
+  CARD_STRENGTH,
+  CARD_POINTS,
+  isTrump,
+  compareCards,
+  createDeck,
+  findCard,
 } from './deck';
-import { calcularPontosRestantes, calcularProbabilidadeVitoria } from './scoring';
-import { calcularAjusteEstilo } from './style-analyzer';
+import { calculateRemainingPoints, calculateWinProbability } from './scoring';
+import { calculateStyleAdjustment } from './style-analyzer';
 
 /**
- * Calcula quais cartas ainda estão no jogo (não foram jogadas)
+ * Calculates which cards are still in the game (haven't been played)
  */
-const calcularCartasRestantes = (cartasJogadas: Carta[]): Carta[] => {
-  const baralhoCompleto = criarBaralho();
+const calculateRemainingCards = (playedCards: Card[]): Card[] => {
+  const completeDeck = createDeck();
 
-  return baralhoCompleto.filter(
-    (carta) => encontrarCarta(cartasJogadas, carta) === -1
+  return completeDeck.filter(
+    (card) => findCard(playedCards, card) === -1
   );
 };
 
 /**
- * Calcula a probabilidade de um oponente ter trunfo
+ * Calculates the probability of an opponent having trump
  */
-const calcularProbabilidadeTrunfo = (
-  cartasRestantes: Carta[],
-  trunfo: Carta | null,
-  numeroOponentes: number
+const calculateTrumpProbability = (
+  remainingCards: Card[],
+  trump: Card | null,
+  numberOfOpponents: number
 ): number => {
-  if (!trunfo) return 0;
+  if (!trump) return 0;
 
-  const trunfosRestantes = cartasRestantes.filter((c) =>
-    isTrunfo(c, trunfo)
+  const remainingTrumps = remainingCards.filter((c) =>
+    isTrump(c, trump)
   ).length;
 
-  if (trunfosRestantes === 0) return 0;
+  if (remainingTrumps === 0) return 0;
 
-  const cartasNaoVistas = cartasRestantes.length;
-  const probabilidadePorOponente = trunfosRestantes / cartasNaoVistas;
+  const unseenCards = remainingCards.length;
+  const probabilityPerOpponent = remainingTrumps / unseenCards;
 
-  // Probabilidade de pelo menos um oponente ter trunfo
-  const probabilidade = 1 - Math.pow(1 - probabilidadePorOponente, numeroOponentes);
+  // Probability of at least one opponent having trump
+  const probability = 1 - Math.pow(1 - probabilityPerOpponent, numberOfOpponents);
 
-  return Math.round(probabilidade * 100);
+  return Math.round(probability * 100);
 };
 
 /**
- * Avalia a força de uma carta no contexto atual
+ * Evaluates the strength of a card in the current context
  */
-const avaliarForcaCarta = (
-  carta: Carta,
-  trunfo: Carta | null,
-  cartasRestantes: Carta[]
+const evaluateCardStrength = (
+  card: Card,
+  trump: Card | null,
+  remainingCards: Card[]
 ): number => {
-  const pontosBase = PONTOS_CARTA[carta.valor] ?? 0;
-  const forcaBase = FORCA_CARTA[carta.valor] ?? 0;
+  const basePoints = CARD_POINTS[card.rank] ?? 0;
+  const baseStrength = CARD_STRENGTH[card.rank] ?? 0;
 
-  let pontuacao = forcaBase * 5 + pontosBase * 2;
+  let score = baseStrength * 5 + basePoints * 2;
 
-  // Bônus se é trunfo
-  if (isTrunfo(carta, trunfo)) {
-    pontuacao += 20;
+  // Bonus if it's trump
+  if (isTrump(card, trump)) {
+    score += 20;
   }
 
-  // Calcula quantas cartas podem vencer esta
-  const cartasQuePodeVencer = cartasRestantes.filter((c) => {
-    return compararCartas(c, carta, trunfo, carta) > 0;
+  // Calculate how many cards can beat this one
+  const cardsThatCanWin = remainingCards.filter((c) => {
+    return compareCards(c, card, trump, card) > 0;
   }).length;
 
-  // Reduz pontuação baseado no risco de ser vencida
-  const fatorRisco = cartasQuePodeVencer / cartasRestantes.length;
-  pontuacao *= 1 - fatorRisco * 0.5;
+  // Reduce score based on risk of being beaten
+  const riskFactor = cardsThatCanWin / remainingCards.length;
+  score *= 1 - riskFactor * 0.5;
 
-  return Math.round(pontuacao);
+  return Math.round(score);
 };
 
 /**
- * Determina o nível de risco de jogar uma carta
+ * Determines the risk level of playing a card
  */
-const determinarNivelRisco = (
-  carta: Carta,
-  pontosNaRodada: number,
-  probabilidadeTrunfo: number,
-  trunfo: Carta | null
-): NivelRisco => {
-  const pontosCarta = PONTOS_CARTA[carta.valor] ?? 0;
-  const totalPontosEmRisco = pontosCarta + pontosNaRodada;
+const determineRiskLevel = (
+  card: Card,
+  roundPoints: number,
+  trumpProbability: number,
+  trump: Card | null
+): RiskLevel => {
+  const cardPoints = CARD_POINTS[card.rank] ?? 0;
+  const totalPointsAtRisk = cardPoints + roundPoints;
 
-  const eTrunfo = isTrunfo(carta, trunfo);
+  const cardIsTrump = isTrump(card, trump);
 
-  // Trunfo forte com muitos pontos em jogo = alto risco
-  if (eTrunfo && totalPontosEmRisco >= 20 && probabilidadeTrunfo > 50) {
-    return NivelRisco.ALTO;
+  // Strong trump with many points in play = high risk
+  if (cardIsTrump && totalPointsAtRisk >= 20 && trumpProbability > 50) {
+    return RiskLevel.HIGH;
   }
 
-  // Carta com muitos pontos = risco médio/alto
-  if (pontosCarta >= 10) {
-    return probabilidadeTrunfo > 60
-      ? NivelRisco.MUITO_ALTO
-      : probabilidadeTrunfo > 40
-      ? NivelRisco.ALTO
-      : NivelRisco.MEDIO;
+  // Card with many points = medium/high risk
+  if (cardPoints >= 10) {
+    return trumpProbability > 60
+      ? RiskLevel.VERY_HIGH
+      : trumpProbability > 40
+      ? RiskLevel.HIGH
+      : RiskLevel.MEDIUM;
   }
 
-  // Carta forte mas sem pontos
-  const forca = FORCA_CARTA[carta.valor] ?? 0;
-  if (forca >= 9 && totalPontosEmRisco >= 15) {
-    return NivelRisco.MEDIO;
+  // Strong card but no points
+  const strength = CARD_STRENGTH[card.rank] ?? 0;
+  if (strength >= 9 && totalPointsAtRisk >= 15) {
+    return RiskLevel.MEDIUM;
   }
 
-  // Carta fraca = baixo risco
-  if (forca <= 5 && pontosCarta === 0) {
-    return NivelRisco.MUITO_BAIXO;
+  // Weak card = low risk
+  if (strength <= 5 && cardPoints === 0) {
+    return RiskLevel.VERY_LOW;
   }
 
-  return NivelRisco.BAIXO;
+  return RiskLevel.LOW;
 };
 
 /**
- * Gera motivo para a recomendação
+ * Generates reason for the recommendation
  */
-const gerarMotivoRecomendacao = (
-  carta: Carta,
-  contexto: {
-    pontosNaRodada: number;
-    isPrimeiraJogada: boolean;
-    estaGanhando: boolean;
-    pontosRestantes: number;
-    nivelRisco: NivelRisco;
-    probabilidadeTrunfo: number;
+const generateRecommendationReason = (
+  card: Card,
+  context: {
+    roundPoints: number;
+    isFirstPlay: boolean;
+    isWinning: boolean;
+    remainingPoints: number;
+    riskLevel: RiskLevel;
+    trumpProbability: number;
   },
-  trunfo: Carta | null
+  trump: Card | null
 ): string => {
-  const pontosCarta = PONTOS_CARTA[carta.valor] ?? 0;
-  const forcaCarta = FORCA_CARTA[carta.valor] ?? 0;
-  const eTrunfo = isTrunfo(carta, trunfo);
+  const cardPoints = CARD_POINTS[card.rank] ?? 0;
+  const cardStrength = CARD_STRENGTH[card.rank] ?? 0;
+  const cardIsTrump = isTrump(card, trump);
 
-  const motivos: string[] = [];
+  const reasons: string[] = [];
 
-  // Primeira jogada
-  if (contexto.isPrimeiraJogada) {
-    if (pontosCarta === 0 && forcaCarta <= 6) {
-      motivos.push('Carta fraca ideal para abrir a rodada');
-    } else if (pontosCarta >= 10 && contexto.estaGanhando) {
-      motivos.push('Você está à frente, pode arriscar ganhar pontos');
-    } else if (eTrunfo && forcaCarta >= 9) {
-      motivos.push('Trunfo forte para garantir pontos');
+  // First play
+  if (context.isFirstPlay) {
+    if (cardPoints === 0 && cardStrength <= 6) {
+      reasons.push('Carta fraca ideal para abrir a rodada');
+    } else if (cardPoints >= 10 && context.isWinning) {
+      reasons.push('Você está à frente, pode arriscar ganhar pontos');
+    } else if (cardIsTrump && cardStrength >= 9) {
+      reasons.push('Trunfo forte para garantir pontos');
     }
   } else {
-    // Respondendo a uma jogada
-    if (contexto.pontosNaRodada >= 15) {
-      if (eTrunfo || forcaCarta >= 9) {
-        motivos.push(`${contexto.pontosNaRodada} pontos em jogo, vale tentar ganhar`);
-      } else if (pontosCarta === 0 && forcaCarta <= 5) {
-        motivos.push('Muitos pontos em jogo, melhor não arriscar carta boa');
+    // Responding to a play
+    if (context.roundPoints >= 15) {
+      if (cardIsTrump || cardStrength >= 9) {
+        reasons.push(`${context.roundPoints} pontos em jogo, vale tentar ganhar`);
+      } else if (cardPoints === 0 && cardStrength <= 5) {
+        reasons.push('Muitos pontos em jogo, melhor não arriscar carta boa');
       }
-    } else if (contexto.pontosNaRodada === 0) {
-      motivos.push('Sem pontos na rodada, economize cartas fortes');
+    } else if (context.roundPoints === 0) {
+      reasons.push('Sem pontos na rodada, economize cartas fortes');
     }
   }
 
-  // Considera situação do jogo
-  if (!contexto.estaGanhando && contexto.pontosRestantes < 40) {
-    motivos.push('Você está atrás, precisa ser mais agressivo');
+  // Consider game situation
+  if (!context.isWinning && context.remainingPoints < 40) {
+    reasons.push('Você está atrás, precisa ser mais agressivo');
   }
 
-  // Risco
-  if (contexto.nivelRisco === NivelRisco.MUITO_BAIXO) {
-    motivos.push('Jogada segura');
-  } else if (contexto.nivelRisco === NivelRisco.MUITO_ALTO) {
-    motivos.push('Jogada arriscada, mas pode valer a pena');
+  // Risk
+  if (context.riskLevel === RiskLevel.VERY_LOW) {
+    reasons.push('Jogada segura');
+  } else if (context.riskLevel === RiskLevel.VERY_HIGH) {
+    reasons.push('Jogada arriscada, mas pode valer a pena');
   }
 
-  // Probabilidade de trunfo
-  if (contexto.probabilidadeTrunfo > 70 && !eTrunfo && pontosCarta >= 10) {
-    motivos.push('Cuidado: alta chance do oponente ter trunfo');
+  // Trump probability
+  if (context.trumpProbability > 70 && !cardIsTrump && cardPoints >= 10) {
+    reasons.push('Cuidado: alta chance do oponente ter trunfo');
   }
 
-  return motivos.length > 0
-    ? motivos.join('. ') + '.'
+  return reasons.length > 0
+    ? reasons.join('. ') + '.'
     : 'Jogada razoável no contexto atual.';
 };
 
 /**
- * Calcula recomendação para uma carta específica
+ * Calculates recommendation for a specific card
  */
-const calcularRecomendacaoCarta = (
-  carta: Carta,
-  estado: EstadoJogo,
-  cartasRestantes: Carta[],
-  numeroOponentes: number
-): Recomendacao => {
-  const rodadaAtual = estado.rodadaAtual;
-  const isPrimeiraJogada = !rodadaAtual || rodadaAtual.cartasJogadas.length === 0;
+const calculateCardRecommendation = (
+  card: Card,
+  state: GameState,
+  remainingCards: Card[],
+  numberOfOpponents: number
+): Recommendation => {
+  const currentRound = state.currentRound;
+  const isFirstPlay = !currentRound || currentRound.playedCards.length === 0;
 
-  const pontosNaRodada = rodadaAtual
-    ? rodadaAtual.cartasJogadas.reduce((sum, cj) => sum + cj.carta.pontos, 0)
+  const roundPoints = currentRound
+    ? currentRound.playedCards.reduce((sum, pc) => sum + pc.card.points, 0)
     : 0;
 
-  const probabilidadeTrunfo = calcularProbabilidadeTrunfo(
-    cartasRestantes,
-    estado.trunfo,
-    numeroOponentes
+  const trumpProbability = calculateTrumpProbability(
+    remainingCards,
+    state.trump,
+    numberOfOpponents
   );
 
-  // Avalia força da carta
-  const forcaDaMao = avaliarForcaCarta(carta, estado.trunfo, cartasRestantes);
+  // Evaluate card strength
+  const handStrength = evaluateCardStrength(card, state.trump, remainingCards);
 
-  // Determina nível de risco
-  const nivelRisco = determinarNivelRisco(
-    carta,
-    pontosNaRodada,
-    probabilidadeTrunfo,
-    estado.trunfo
+  // Determine risk level
+  const riskLevel = determineRiskLevel(
+    card,
+    roundPoints,
+    trumpProbability,
+    state.trump
   );
 
-  // Calcula prioridade base
-  let prioridade = forcaDaMao;
+  // Calculate base priority
+  let priority = handStrength;
 
-  // Ajusta baseado no contexto
-  const usuarioId = estado.configuracao.idUsuario;
-  const jogadorUsuario = estado.jogadores[usuarioId];
-  const pontosUsuario = jogadorUsuario?.pontos ?? 0;
+  // Adjust based on context
+  const userId = state.configuration.userId;
+  const userPlayer = state.players[userId];
+  const userPoints = userPlayer?.points ?? 0;
 
-  // Calcula pontos do(s) oponente(s)
-  const pontosOponentes = Object.values(estado.jogadores)
-    .filter((j) => j.id !== usuarioId)
-    .reduce((sum, j) => sum + j.pontos, 0);
+  // Calculate opponent(s) points
+  const opponentsPoints = Object.values(state.players)
+    .filter((p) => p.id !== userId)
+    .reduce((sum, p) => sum + p.points, 0);
 
-  const estaGanhando = pontosUsuario > pontosOponentes / numeroOponentes;
-  const pontosRestantes = calcularPontosRestantes(estado.cartasJogadas);
+  const isWinning = userPoints > opponentsPoints / numberOfOpponents;
+  const remainingPoints = calculateRemainingPoints(state.playedCards);
 
-  // Ajusta prioridade baseado em estilo dos oponentes
-  const analisesOponentes = Object.values(estado.analisesEstilo).filter(
-    (a) => a.jogadorId !== usuarioId
+  // Adjust priority based on opponents' style
+  const opponentsAnalyses = Object.values(state.styleAnalyses).filter(
+    (a) => a.playerId !== userId
   );
 
-  for (const analise of analisesOponentes) {
-    const ajuste = calcularAjusteEstilo(analise.estilo, analise.confianca);
+  for (const analysis of opponentsAnalyses) {
+    const adjustment = calculateStyleAdjustment(analysis.style, analysis.confidence);
 
-    const pontosCarta = PONTOS_CARTA[carta.valor] ?? 0;
-    const forcaCarta = FORCA_CARTA[carta.valor] ?? 0;
+    const cardPoints = CARD_POINTS[card.rank] ?? 0;
+    const cardStrength = CARD_STRENGTH[card.rank] ?? 0;
 
-    if (ajuste.preferirAgressivo && (pontosCarta >= 10 || forcaCarta >= 9)) {
-      prioridade += 10 * ajuste.fatorAjuste;
-    } else if (ajuste.preferirDefensivo && pontosCarta === 0 && forcaCarta <= 6) {
-      prioridade += 10 * ajuste.fatorAjuste;
+    if (adjustment.preferAggressive && (cardPoints >= 10 || cardStrength >= 9)) {
+      priority += 10 * adjustment.adjustmentFactor;
+    } else if (adjustment.preferDefensive && cardPoints === 0 && cardStrength <= 6) {
+      priority += 10 * adjustment.adjustmentFactor;
     }
   }
 
-  // Normaliza prioridade (0-100)
-  prioridade = Math.max(0, Math.min(100, prioridade));
+  // Normalize priority (0-100)
+  priority = Math.max(0, Math.min(100, priority));
 
-  // Calcula probabilidade de vitória se jogar esta carta
-  const probabilidadeVitoria = calcularProbabilidadeVitoria(
-    pontosUsuario,
-    pontosOponentes / numeroOponentes,
-    pontosRestantes
+  // Calculate win probability if playing this card
+  const winProbability = calculateWinProbability(
+    userPoints,
+    opponentsPoints / numberOfOpponents,
+    remainingPoints
   );
 
-  // Gera motivo
-  const motivo = gerarMotivoRecomendacao(
-    carta,
+  // Generate reason
+  const reason = generateRecommendationReason(
+    card,
     {
-      pontosNaRodada,
-      isPrimeiraJogada,
-      estaGanhando,
-      pontosRestantes,
-      nivelRisco,
-      probabilidadeTrunfo,
+      roundPoints,
+      isFirstPlay,
+      isWinning,
+      remainingPoints,
+      riskLevel,
+      trumpProbability,
     },
-    estado.trunfo
+    state.trump
   );
 
   return {
-    carta,
-    prioridade: Math.round(prioridade),
-    motivo,
-    nivelRisco,
-    probabilidadeVitoria,
-    detalhes: {
-      forcaDaMao: Math.round(forcaDaMao),
-      cartasRestantes: cartasRestantes.length,
-      probabilidadeTrunfo,
-      pontosEmJogo: pontosNaRodada + (PONTOS_CARTA[carta.valor] ?? 0),
+    card,
+    priority: Math.round(priority),
+    reason,
+    riskLevel,
+    winProbability,
+    details: {
+      handStrength: Math.round(handStrength),
+      remainingCards: remainingCards.length,
+      trumpProbability,
+      pointsAtStake: roundPoints + (CARD_POINTS[card.rank] ?? 0),
     },
   };
 };
 
 /**
- * Gera recomendações para todas as cartas da mão
+ * Generates recommendations for all cards in hand
  */
-export const gerarRecomendacoes = (estado: EstadoJogo): Recomendacao[] => {
-  const maoUsuario = estado.maoUsuario;
+export const generateRecommendations = (state: GameState): Recommendation[] => {
+  const userHand = state.userHand;
 
-  if (maoUsuario.length === 0) {
+  if (userHand.length === 0) {
     return [];
   }
 
-  const cartasRestantes = calcularCartasRestantes(estado.cartasJogadas);
-  const numeroOponentes = estado.configuracao.numeroJogadores - 1;
+  const remainingCards = calculateRemainingCards(state.playedCards);
+  const numberOfOpponents = state.configuration.numberOfPlayers - 1;
 
-  const recomendacoes = maoUsuario.map((carta) =>
-    calcularRecomendacaoCarta(carta, estado, cartasRestantes, numeroOponentes)
+  const recommendations = userHand.map((card) =>
+    calculateCardRecommendation(card, state, remainingCards, numberOfOpponents)
   );
 
-  // Ordena por prioridade (maior primeiro)
-  return recomendacoes.sort((a, b) => b.prioridade - a.prioridade);
+  // Sort by priority (highest first)
+  return recommendations.sort((a, b) => b.priority - a.priority);
 };
 
 /**
- * Retorna a melhor recomendação
+ * Returns the best recommendation
  */
-export const obterMelhorRecomendacao = (estado: EstadoJogo): Recomendacao | null => {
-  const recomendacoes = gerarRecomendacoes(estado);
-  return recomendacoes[0] ?? null;
+export const getBestRecommendation = (state: GameState): Recommendation | null => {
+  const recommendations = generateRecommendations(state);
+  return recommendations[0] ?? null;
 };
 
 /**
- * Explica por que uma carta específica é boa ou ruim
+ * Explains why a specific card is good or bad
  */
-export const explicarCarta = (
-  carta: Carta,
-  estado: EstadoJogo
+export const explainCard = (
+  card: Card,
+  state: GameState
 ): string => {
-  const cartasRestantes = calcularCartasRestantes(estado.cartasJogadas);
-  const numeroOponentes = estado.configuracao.numeroJogadores - 1;
+  const remainingCards = calculateRemainingCards(state.playedCards);
+  const numberOfOpponents = state.configuration.numberOfPlayers - 1;
 
-  const recomendacao = calcularRecomendacaoCarta(
-    carta,
-    estado,
-    cartasRestantes,
-    numeroOponentes
+  const recommendation = calculateCardRecommendation(
+    card,
+    state,
+    remainingCards,
+    numberOfOpponents
   );
 
-  return `${recomendacao.motivo} (Prioridade: ${recomendacao.prioridade}/100, Risco: ${recomendacao.nivelRisco})`;
+  return `${recommendation.reason} (Prioridade: ${recommendation.priority}/100, Risco: ${recommendation.riskLevel})`;
 };

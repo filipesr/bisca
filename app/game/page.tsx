@@ -12,12 +12,12 @@ import { describeStyle } from '@/lib/bisca/style-analyzer';
 const GamePage = () => {
   const router = useRouter();
   const {
-    estado,
-    registrarCardJogada,
-    atualizarMaoUsuario,
-    solicitarRecomendacao,
-    finalizarRodada,
-    resetarJogo,
+    state,
+    registerPlayedCard,
+    updateUserHand,
+    requestRecommendation,
+    finalizeRound,
+    resetGame,
   } = useGameStore();
 
   const [mostrarSeletorMao, setMostrarSeletorMao] = useState(false);
@@ -26,23 +26,23 @@ const GamePage = () => {
   const [mensagem, setMensagem] = useState('');
 
   useEffect(() => {
-    if (estado.status === GameStatus.CONFIGURACAO) {
+    if (state.status === GameStatus.SETUP) {
       router.push('/setup');
     }
-  }, [estado.status, router]);
+  }, [state.status, router]);
 
   const handleAdicionarCardMao = (carta: Card): void => {
-    const novaMao = [...estado.maoUsuario, carta];
-    atualizarMaoUsuario(novaMao);
+    const novaMao = [...state.userHand, carta];
+    updateUserHand(novaMao);
     setMensagem(`${cardToString(carta)} adicionada à sua mão`);
     setTimeout(() => setMensagem(''), 3000);
   };
 
   const handleRemoverCardMao = (carta: Card): void => {
-    const novaMao = estado.maoUsuario.filter(
-      (c) => !(c.valor === carta.valor && c.naipe === carta.naipe)
+    const novaMao = state.userHand.filter(
+      (c) => !(c.rank === carta.rank && c.suit === carta.suit)
     );
-    atualizarMaoUsuario(novaMao);
+    updateUserHand(novaMao);
     setMensagem(`${cardToString(carta)} removida da mão`);
     setTimeout(() => setMensagem(''), 3000);
   };
@@ -50,38 +50,38 @@ const GamePage = () => {
   const handleRegistrarJogada = (carta: Card): void => {
     if (!jogadorSelecionado) return;
 
-    const resultado = registrarCardJogada(jogadorSelecionado, carta);
-    setMensagem(resultado.mensagem ?? resultado.erro ?? '');
+    const resultado = registerPlayedCard(jogadorSelecionado, carta);
+    setMensagem(resultado.message ?? resultado.error ?? '');
     setMostrarSeletorJogada(false);
     setJogadorSelecionado(null);
     setTimeout(() => setMensagem(''), 3000);
   };
 
   const handleSolicitarRecomendacao = (): void => {
-    const resultado = solicitarRecomendacao();
-    setMensagem(resultado.mensagem ?? resultado.erro ?? '');
+    const resultado = requestRecommendation();
+    setMensagem(resultado.message ?? resultado.error ?? '');
     setTimeout(() => setMensagem(''), 5000);
   };
 
   const handleFinalizarRodada = (): void => {
-    const resultado = finalizarRodada();
-    setMensagem(resultado.mensagem ?? resultado.erro ?? '');
+    const resultado = finalizeRound();
+    setMensagem(resultado.message ?? resultado.error ?? '');
     setTimeout(() => setMensagem(''), 3000);
   };
 
   const handleResetar = (): void => {
     if (confirm('Tem certeza que deseja resetar o jogo?')) {
-      resetarJogo();
+      resetGame();
       router.push('/');
     }
   };
 
   const rodadaCompleta =
-    estado.rodadaAtual &&
-    estado.rodadaAtual.cartasJogadas.length === estado.configuracao.numeroJogadores;
+    state.currentRound &&
+    state.currentRound.playedCards.length === state.configuration.numberOfPlayers;
 
-  const jogadores = Object.values(estado.jogadores);
-  const usuarioId = estado.configuracao.idUsuario;
+  const jogadores = Object.values(state.players);
+  const usuarioId = state.configuration.userId;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 p-4">
@@ -91,8 +91,8 @@ const GamePage = () => {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Bisca Assistant</h1>
             <p className="text-sm text-gray-600">
-              Rodada {estado.rodadaAtual?.numero ?? '-'} | Próximo:{' '}
-              {estado.proximoJogador ? estado.jogadores[estado.proximoJogador]?.nome : '-'}
+              Rodada {state.currentRound?.number ?? '-'} | Próximo:{' '}
+              {state.nextPlayer ? state.players[state.nextPlayer]?.name : '-'}
             </p>
           </div>
           <button
@@ -115,9 +115,9 @@ const GamePage = () => {
           {/* Trunfo */}
           <div className="bg-white rounded-xl shadow-lg p-4">
             <h3 className="font-semibold text-gray-900 mb-3">Trunfo</h3>
-            {estado.trunfo ? (
+            {state.trump ? (
               <div className="flex justify-center">
-                <PlayingCard carta={estado.trunfo} small />
+                <PlayingCard carta={state.trump} small />
               </div>
             ) : (
               <p className="text-gray-500 text-center">Nenhum trunfo definido</p>
@@ -135,8 +135,8 @@ const GamePage = () => {
                     jogador.id === usuarioId ? 'bg-green-100' : 'bg-gray-50'
                   }`}
                 >
-                  <span className="font-medium">{jogador.nome}</span>
-                  <span className="font-bold text-green-600">{jogador.pontos} pts</span>
+                  <span className="font-medium">{jogador.name}</span>
+                  <span className="font-bold text-green-600">{jogador.points} pts</span>
                 </div>
               ))}
             </div>
@@ -157,13 +157,13 @@ const GamePage = () => {
             )}
           </div>
 
-          {estado.rodadaAtual && estado.rodadaAtual.cartasJogadas.length > 0 ? (
+          {state.currentRound && state.currentRound.playedCards.length > 0 ? (
             <div className="flex flex-wrap gap-4 justify-center">
-              {estado.rodadaAtual.cartasJogadas.map((cj) => (
-                <div key={`${cj.jogadorId}-${cj.ordem}`} className="text-center">
-                  <PlayingCard carta={cj.carta} />
+              {state.currentRound.playedCards.map((cj) => (
+                <div key={`${cj.playerId}-${cj.order}`} className="text-center">
+                  <PlayingCard carta={cj.card} />
                   <p className="text-xs font-medium text-gray-600 mt-2">
-                    {estado.jogadores[cj.jogadorId]?.nome}
+                    {state.players[cj.playerId]?.name}
                   </p>
                 </div>
               ))}
@@ -185,7 +185,7 @@ const GamePage = () => {
                   }}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
                 >
-                  Registrar jogada de {jogador.nome}
+                  Registrar jogada de {jogador.name}
                 </button>
               ))}
           </div>
@@ -203,16 +203,16 @@ const GamePage = () => {
             </button>
           </div>
 
-          {estado.maoUsuario.length > 0 ? (
+          {state.userHand.length > 0 ? (
             <div className="flex flex-wrap gap-4 justify-center">
-              {estado.maoUsuario.map((carta, index) => (
+              {state.userHand.map((carta, index) => (
                 <div key={index} onClick={() => handleRemoverCardMao(carta)}>
-                  <Card
+                  <PlayingCard
                     carta={carta}
                     onClick={() => handleRemoverCardMao(carta)}
                     recommended={
-                      estado.recomendacaoAtual?.carta.valor === carta.valor &&
-                      estado.recomendacaoAtual?.carta.naipe === carta.naipe
+                      state.currentRecommendation?.card.rank === carta.rank &&
+                      state.currentRecommendation?.card.suit === carta.suit
                     }
                   />
                 </div>
@@ -224,7 +224,7 @@ const GamePage = () => {
             </p>
           )}
 
-          {estado.maoUsuario.length > 0 && (
+          {state.userHand.length > 0 && (
             <div className="mt-4">
               <button
                 onClick={handleSolicitarRecomendacao}
@@ -237,21 +237,21 @@ const GamePage = () => {
         </div>
 
         {/* Recomendação */}
-        {estado.recomendacaoAtual && (
+        {state.currentRecommendation && (
           <div className="bg-yellow-50 border-2 border-yellow-400 rounded-xl shadow-lg p-4">
             <h3 className="font-semibold text-gray-900 mb-3">💡 Recomendação</h3>
             <div className="space-y-2">
               <div className="flex items-center gap-4">
-                <PlayingCard carta={estado.recomendacaoAtual.carta} small />
+                <PlayingCard carta={state.currentRecommendation.card} small />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900">
-                    {estado.recomendacaoAtual.motivo}
+                    {state.currentRecommendation.reason}
                   </p>
                   <div className="flex gap-4 mt-2 text-xs text-gray-600">
-                    <span>Prioridade: {estado.recomendacaoAtual.prioridade}/100</span>
-                    <span>Risco: {estado.recomendacaoAtual.nivelRisco}</span>
+                    <span>Prioridade: {state.currentRecommendation.priority}/100</span>
+                    <span>Risco: {state.currentRecommendation.riskLevel}</span>
                     <span>
-                      Prob. Vitória: {estado.recomendacaoAtual.probabilidadeVitoria}%
+                      Prob. Vitória: {state.currentRecommendation.winProbability}%
                     </span>
                   </div>
                 </div>
@@ -264,14 +264,14 @@ const GamePage = () => {
         <div className="bg-white rounded-xl shadow-lg p-4">
           <h3 className="font-semibold text-gray-900 mb-3">Análise de Estilo dos Jogadores</h3>
           <div className="space-y-2">
-            {Object.values(estado.analisesEstilo).map((analise) => (
-              <div key={analise.jogadorId} className="p-3 bg-gray-50 rounded-lg">
+            {Object.values(state.styleAnalyses).map((analise) => (
+              <div key={analise.playerId} className="p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">
-                    {estado.jogadores[analise.jogadorId]?.nome}
+                    {state.players[analise.playerId]?.name}
                   </span>
                   <span className="text-sm font-semibold text-green-600">
-                    {analise.estilo}
+                    {analise.style}
                   </span>
                 </div>
                 <p className="text-xs text-gray-600 mt-1">{describeStyle(analise)}</p>
@@ -292,7 +292,7 @@ const GamePage = () => {
 
       {mostrarSeletorJogada && jogadorSelecionado && (
         <CardSelector
-          title={`Registrar jogada de ${estado.jogadores[jogadorSelecionado]?.nome}`}
+          title={`Registrar jogada de ${state.players[jogadorSelecionado]?.name}`}
           onSelect={handleRegistrarJogada}
           onCancel={() => {
             setMostrarSeletorJogada(false);

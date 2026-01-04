@@ -7,36 +7,36 @@ import { GameConfiguration, PlayerId } from '@/lib/bisca/types';
 
 const SetupPage = () => {
   const router = useRouter();
-  const iniciarJogo = useGameStore((state) => state.iniciarJogo);
+  const startGame = useGameStore((state) => state.startGame);
 
-  const [numeroJogadores, setNumeroJogadores] = useState<2 | 4>(2);
-  const [nomeUsuario, setNomeUsuario] = useState('');
-  const [nomeOponente1, setNomeOponente1] = useState('');
-  const [nomeOponente2, setNomeOponente2] = useState('');
-  const [nomeOponente3, setNomeOponente3] = useState('');
+  const [numberOfPlayers, setNumeroJogadores] = useState<2 | 4>(2);
+  const [userName, setNomeUsuario] = useState('');
+  const [opponentName1, setNomeOponente1] = useState('');
+  const [opponentName2, setNomeOponente2] = useState('');
+  const [opponentName3, setNomeOponente3] = useState('');
 
   const handleIniciar = (): void => {
-    const nomesJogadores: string[] = [nomeUsuario || 'Você'];
+    const playerNames: string[] = [userName || 'Você'];
 
-    if (numeroJogadores === 2) {
-      nomesJogadores.push(nomeOponente1 || 'Oponente');
+    if (numberOfPlayers === 2) {
+      playerNames.push(opponentName1 || 'Oponente');
     } else {
-      nomesJogadores.push(
-        nomeOponente1 || 'Oponente 1',
-        nomeOponente2 || 'Parceiro',
-        nomeOponente3 || 'Oponente 2'
+      playerNames.push(
+        opponentName1 || 'Oponente 1',
+        opponentName2 || 'Parceiro',
+        opponentName3 || 'Oponente 2'
       );
     }
 
     const configuracao: GameConfiguration = {
-      numeroJogadores,
-      nomesJogadores,
-      idUsuario: 'player1' as PlayerId,
+      numberOfPlayers,
+      playerNames,
+      userId: 'player1' as PlayerId,
     };
 
-    const resultado = iniciarJogo(configuracao);
+    const resultado = startGame(configuracao);
 
-    if (resultado.sucesso) {
+    if (resultado.success) {
       router.push('/game');
     }
   };
@@ -58,7 +58,7 @@ const SetupPage = () => {
               <button
                 onClick={() => setNumeroJogadores(2)}
                 className={`py-3 px-4 rounded-lg font-medium transition-colors ${
-                  numeroJogadores === 2
+                  numberOfPlayers === 2
                     ? 'bg-green-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
@@ -68,7 +68,7 @@ const SetupPage = () => {
               <button
                 onClick={() => setNumeroJogadores(4)}
                 className={`py-3 px-4 rounded-lg font-medium transition-colors ${
-                  numeroJogadores === 4
+                  numberOfPlayers === 4
                     ? 'bg-green-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
@@ -79,13 +79,13 @@ const SetupPage = () => {
           </div>
 
           <div>
-            <label htmlFor="nomeUsuario" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="userName" className="block text-sm font-medium text-gray-700 mb-2">
               Seu Nome
             </label>
             <input
               type="text"
-              id="nomeUsuario"
-              value={nomeUsuario}
+              id="userName"
+              value={userName}
               onChange={(e) => setNomeUsuario(e.target.value)}
               placeholder="Seu nome"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
@@ -93,29 +93,29 @@ const SetupPage = () => {
           </div>
 
           <div>
-            <label htmlFor="nomeOponente1" className="block text-sm font-medium text-gray-700 mb-2">
-              {numeroJogadores === 2 ? 'Nome do Oponente' : 'Oponente 1'}
+            <label htmlFor="opponentName1" className="block text-sm font-medium text-gray-700 mb-2">
+              {numberOfPlayers === 2 ? 'Nome do Oponente' : 'Oponente 1'}
             </label>
             <input
               type="text"
-              id="nomeOponente1"
-              value={nomeOponente1}
+              id="opponentName1"
+              value={opponentName1}
               onChange={(e) => setNomeOponente1(e.target.value)}
-              placeholder={numeroJogadores === 2 ? 'Nome do oponente' : 'Nome do oponente 1'}
+              placeholder={numberOfPlayers === 2 ? 'Nome do oponente' : 'Nome do oponente 1'}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
             />
           </div>
 
-          {numeroJogadores === 4 && (
+          {numberOfPlayers === 4 && (
             <>
               <div>
-                <label htmlFor="nomeOponente2" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="opponentName2" className="block text-sm font-medium text-gray-700 mb-2">
                   Parceiro (Jogador 3)
                 </label>
                 <input
                   type="text"
-                  id="nomeOponente2"
-                  value={nomeOponente2}
+                  id="opponentName2"
+                  value={opponentName2}
                   onChange={(e) => setNomeOponente2(e.target.value)}
                   placeholder="Nome do parceiro"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
@@ -123,13 +123,13 @@ const SetupPage = () => {
               </div>
 
               <div>
-                <label htmlFor="nomeOponente3" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="opponentName3" className="block text-sm font-medium text-gray-700 mb-2">
                   Oponente 2 (Jogador 4)
                 </label>
                 <input
                   type="text"
-                  id="nomeOponente3"
-                  value={nomeOponente3}
+                  id="opponentName3"
+                  value={opponentName3}
                   onChange={(e) => setNomeOponente3(e.target.value)}
                   placeholder="Nome do oponente 2"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"

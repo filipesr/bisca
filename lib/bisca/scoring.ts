@@ -117,8 +117,8 @@ export const calcularTwoPlayerScore = (
   const difference = calculatePointsDifference(jogador1.points, jogador2.points);
 
   let leader: PlayerId | null = null;
-  if (jogador1.points > jogador2.points) leader = 'jogador1';
-  else if (jogador2.points > jogador1.points) leader = 'jogador2';
+  if (jogador1.points > jogador2.points) leader = 'player1';
+  else if (jogador2.points > jogador1.points) leader = 'player2';
 
   return {
     jogador1: stats1,
@@ -153,13 +153,13 @@ export const calcularFourPlayerScore = (
   rodadas: Round[],
   cartasJogadas: Card[]
 ): FourPlayerScore => {
-  const stats1 = calculateStatistics(jogadores['jogador1']!, rodadas);
-  const stats2 = calculateStatistics(jogadores['jogador2']!, rodadas);
-  const stats3 = calculateStatistics(jogadores['jogador3']!, rodadas);
-  const stats4 = calculateStatistics(jogadores['jogador4']!, rodadas);
+  const stats1 = calculateStatistics(jogadores['player1']!, rodadas);
+  const stats2 = calculateStatistics(jogadores['player2']!, rodadas);
+  const stats3 = calculateStatistics(jogadores['player3']!, rodadas);
+  const stats4 = calculateStatistics(jogadores['player4']!, rodadas);
 
-  const teamPoints1 = (jogadores['jogador1']?.points ?? 0) + (jogadores['jogador3']?.points ?? 0);
-  const teamPoints2 = (jogadores['jogador2']?.points ?? 0) + (jogadores['jogador4']?.points ?? 0);
+  const teamPoints1 = (jogadores['player1']?.points ?? 0) + (jogadores['player3']?.points ?? 0);
+  const teamPoints2 = (jogadores['player2']?.points ?? 0) + (jogadores['player4']?.points ?? 0);
 
   const difference = Math.abs(teamPoints1 - teamPoints2);
 

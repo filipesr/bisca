@@ -1,408 +1,408 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import {
-  EstadoJogo,
-  StatusJogo,
-  ConfiguracaoJogo,
-  Carta,
-  JogadorId,
-  Jogador,
-  Rodada,
-  CartaJogada,
-  ResultadoAcao,
+  GameState,
+  GameStatus,
+  GameConfiguration,
+  Card,
+  PlayerId,
+  Player,
+  Round,
+  PlayedCard,
+  ActionResult,
 } from '../bisca/types';
 import {
-  criarBaralho,
-  embaralhar,
-  encontrarCarta,
-  removerCarta,
+  createDeck,
+  shuffle,
+  findCard,
+  removeCard,
 } from '../bisca/deck';
 import {
-  determinarVencedorRodada,
-  determinarOrdemJogo,
-  verificarFimDeJogo,
-  determinarVencedorJogo,
+  determineRoundWinner,
+  determinePlayOrder,
+  checkGameEnd,
+  determineGameWinner,
 } from '../bisca/rules';
 import {
-  criarAnaliseEstiloInicial,
-  atualizarAnaliseEstilo,
+  createInitialStyleAnalysis,
+  updateStyleAnalysis,
 } from '../bisca/style-analyzer';
-import { obterMelhorRecomendacao } from '../bisca/recommendation-engine';
+import { getBestRecommendation } from '../bisca/recommendation-engine';
 
 /**
  * Estado inicial do jogo
  */
-const criarEstadoInicial = (): EstadoJogo => ({
-  status: StatusJogo.CONFIGURACAO,
-  configuracao: {
-    numeroJogadores: 2,
-    nomesJogadores: [],
-    idUsuario: 'jogador1',
+const createInitialState = (): GameState => ({
+  status: GameStatus.SETUP,
+  configuration: {
+    numberOfPlayers: 2,
+    playerNames: [],
+    userId: 'player1',
   },
-  jogadores: {} as Record<JogadorId, Jogador>,
-  trunfo: null,
-  rodadas: [],
-  rodadaAtual: null,
-  proximoJogador: null,
-  cartasNoBaralho: 40,
-  cartasJogadas: [],
-  maoUsuario: [],
-  vencedor: null,
-  analisesEstilo: {} as Record<JogadorId, any>,
-  recomendacaoAtual: null,
+  players: {} as Record<PlayerId, Player>,
+  trump: null,
+  rounds: [],
+  currentRound: null,
+  nextPlayer: null,
+  cardsInDeck: 40,
+  playedCards: [],
+  userHand: [],
+  winner: null,
+  styleAnalyses: {} as Record<PlayerId, any>,
+  currentRecommendation: null,
 });
 
 /**
- * Cria jogadores iniciais
+ * Cria players iniciais
  */
-const criarJogadores = (config: ConfiguracaoJogo): Record<JogadorId, Jogador> => {
-  const jogadores: Record<JogadorId, Jogador> = {} as Record<JogadorId, Jogador>;
+const createPlayers = (configuration: GameConfiguration): Record<PlayerId, Player> => {
+  const players: Record<PlayerId, Player> = {} as Record<PlayerId, Player>;
 
-  const ids: JogadorId[] = config.numeroJogadores === 2
-    ? ['jogador1', 'jogador2']
-    : ['jogador1', 'jogador2', 'jogador3', 'jogador4'];
+  const ids: PlayerId[] = configuration.numberOfPlayers === 2
+    ? ['player1', 'player2']
+    : ['player1', 'player2', 'player3', 'player4'];
 
   ids.forEach((id, index) => {
-    jogadores[id] = {
+    players[id] = {
       id,
-      nome: config.nomesJogadores[index] ?? `Jogador ${index + 1}`,
-      pontos: 0,
-      cartasGanhas: [],
-      numeroCartasNaMao: config.numeroJogadores === 2 ? 3 : 10,
-      isUsuario: id === config.idUsuario,
+      name: configuration.playerNames[index] ?? `Player ${index + 1}`,
+      points: 0,
+      wonCards: [],
+      numberOfCardsInHand: configuration.numberOfPlayers === 2 ? 3 : 10,
+      isUser: id === configuration.userId,
     };
   });
 
-  return jogadores;
+  return players;
 };
 
 /**
  * Zustand Store
  */
 type GameStore = {
-  estado: EstadoJogo;
-  iniciarJogo: (config: ConfiguracaoJogo) => ResultadoAcao;
-  registrarCartaJogada: (jogadorId: JogadorId, carta: Carta) => ResultadoAcao;
-  atualizarMaoUsuario: (cartas: Carta[]) => ResultadoAcao;
-  solicitarRecomendacao: () => ResultadoAcao;
-  finalizarRodada: () => ResultadoAcao;
-  resetarJogo: () => ResultadoAcao;
+  state: GameState;
+  startGame: (configuration: GameConfiguration) => ActionResult;
+  registerPlayedCard: (playerId: PlayerId, card: Card) => ActionResult;
+  updateUserHand: (cards: Card[]) => ActionResult;
+  requestRecommendation: () => ActionResult;
+  finalizeRound: () => ActionResult;
+  resetGame: () => ActionResult;
 };
 
 export const useGameStore = create<GameStore>()(
   persist(
     (set, get) => ({
-      estado: criarEstadoInicial(),
+      state: createInitialState(),
 
-      iniciarJogo: (config: ConfiguracaoJogo): ResultadoAcao => {
+      startGame: (configuration: GameConfiguration): ActionResult => {
         try {
-          // Cria baralho e embaralha
-          const baralho = embaralhar(criarBaralho());
+          // Cria deck e embaralha
+          const deck = shuffle(createDeck());
 
-          // Trunfo é a última carta do baralho
-          const trunfo = baralho[baralho.length - 1] ?? null;
+          // Trunfo é a última card do deck
+          const trump = deck[deck.length - 1] ?? null;
 
-          // Cria jogadores
-          const jogadores = criarJogadores(config);
+          // Cria players
+          const players = createPlayers(configuration);
 
           // Cria análises de estilo iniciais
-          const analisesEstilo: Record<JogadorId, any> = {} as Record<JogadorId, any>;
-          Object.keys(jogadores).forEach((id) => {
-            analisesEstilo[id as JogadorId] = criarAnaliseEstiloInicial(id as JogadorId);
+          const styleAnalyses: Record<PlayerId, any> = {} as Record<PlayerId, any>;
+          Object.keys(players).forEach((id) => {
+            styleAnalyses[id as PlayerId] = createInitialStyleAnalysis(id as PlayerId);
           });
 
           // Define primeiro jogador
-          const ordemJogo = determinarOrdemJogo(config.numeroJogadores, null, config.idUsuario);
+          const playOrder = determinePlayOrder(configuration.numberOfPlayers, null, configuration.userId);
 
           // Cria primeira rodada
-          const primeiraRodada: Rodada = {
-            numero: 1,
-            cartasJogadas: [],
-            vencedor: null,
-            pontosGanhos: 0,
-            completa: false,
+          const firstRound: Round = {
+            number: 1,
+            playedCards: [],
+            winner: null,
+            pointsWon: 0,
+            complete: false,
           };
 
           set({
-            estado: {
-              status: StatusJogo.EM_ANDAMENTO,
-              configuracao: config,
-              jogadores,
-              trunfo,
-              rodadas: [],
-              rodadaAtual: primeiraRodada,
-              proximoJogador: ordemJogo[0] ?? null,
-              cartasNoBaralho: 40,
-              cartasJogadas: [],
-              maoUsuario: [],
-              vencedor: null,
-              analisesEstilo,
-              recomendacaoAtual: null,
+            state: {
+              status: GameStatus.IN_PROGRESS,
+              configuration: configuration,
+              players,
+              trump,
+              rounds: [],
+              currentRound: firstRound,
+              nextPlayer: playOrder[0] ?? null,
+              cardsInDeck: 40,
+              playedCards: [],
+              userHand: [],
+              winner: null,
+              styleAnalyses,
+              currentRecommendation: null,
             },
           });
 
           return {
-            sucesso: true,
-            mensagem: 'Jogo iniciado com sucesso! Informe as cartas da sua mão.',
+            success: true,
+            message: 'Jogo iniciado com success! Informe as cards da sua mão.',
           };
-        } catch (erro) {
+        } catch (error) {
           return {
-            sucesso: false,
-            erro: 'Erro ao iniciar o jogo',
+            success: false,
+            error: 'Erro ao iniciar o jogo',
           };
         }
       },
 
-      registrarCartaJogada: (jogadorId: JogadorId, carta: Carta): ResultadoAcao => {
-        const { estado } = get();
+      registerPlayedCard: (playerId: PlayerId, card: Card): ActionResult => {
+        const { state } = get();
 
-        if (estado.status !== StatusJogo.EM_ANDAMENTO) {
-          return { sucesso: false, erro: 'Jogo não está em andamento' };
+        if (state.status !== GameStatus.IN_PROGRESS) {
+          return { success: false, error: 'Jogo não está em andamento' };
         }
 
-        if (!estado.rodadaAtual) {
-          return { sucesso: false, erro: 'Nenhuma rodada ativa' };
+        if (!state.currentRound) {
+          return { success: false, error: 'Nenhuma rodada ativa' };
         }
 
-        if (estado.proximoJogador !== jogadorId) {
-          return { sucesso: false, erro: 'Não é a vez deste jogador' };
+        if (state.nextPlayer !== playerId) {
+          return { success: false, error: 'Não é a vez deste jogador' };
         }
 
         // Registra a jogada
-        const ordem = estado.rodadaAtual.cartasJogadas.length + 1;
-        const cartaJogada: CartaJogada = {
-          carta,
-          jogadorId,
-          ordem,
+        const order = state.currentRound.playedCards.length + 1;
+        const playedCard: PlayedCard = {
+          card,
+          playerId,
+          order,
         };
 
-        const rodadaAtualizada = {
-          ...estado.rodadaAtual,
-          cartasJogadas: [...estado.rodadaAtual.cartasJogadas, cartaJogada],
+        const currentRoundizada = {
+          ...state.currentRound,
+          playedCards: [...state.currentRound.playedCards, playedCard],
         };
 
-        // Atualiza cartas jogadas globalmente
-        const cartasJogadas = [...estado.cartasJogadas, carta];
+        // Atualiza cards jogadas globalmente
+        const playedCards = [...state.playedCards, card];
 
         // Remove da mão do usuário se for ele
-        let maoUsuario = estado.maoUsuario;
-        if (jogadorId === estado.configuracao.idUsuario) {
-          const index = encontrarCarta(maoUsuario, carta);
+        let userHand = state.userHand;
+        if (playerId === state.configuration.userId) {
+          const index = findCard(userHand, card);
           if (index !== -1) {
-            maoUsuario = removerCarta(maoUsuario, carta);
+            userHand = removeCard(userHand, card);
           }
         }
 
         // Atualiza análise de estilo
-        let analisesEstilo = { ...estado.analisesEstilo };
-        const analiseAtual = analisesEstilo[jogadorId];
-        if (analiseAtual) {
-          analisesEstilo[jogadorId] = atualizarAnaliseEstilo(
-            analiseAtual,
-            cartaJogada,
-            rodadaAtualizada,
-            estado.trunfo,
-            jogadorId === estado.configuracao.idUsuario ? maoUsuario : []
+        let styleAnalyses = { ...state.styleAnalyses };
+        const currentAnalysis = styleAnalyses[playerId];
+        if (currentAnalysis) {
+          styleAnalyses[playerId] = updateStyleAnalysis(
+            currentAnalysis,
+            playedCard,
+            currentRoundizada,
+            state.trump,
+            playerId === state.configuration.userId ? userHand : []
           );
         }
 
         // Determina próximo jogador
-        const ordemJogo = determinarOrdemJogo(
-          estado.configuracao.numeroJogadores,
-          estado.rodadas.length > 0
-            ? estado.rodadas[estado.rodadas.length - 1]?.vencedor ?? null
+        const playOrder = determinePlayOrder(
+          state.configuration.numberOfPlayers,
+          state.rounds.length > 0
+            ? state.rounds[state.rounds.length - 1]?.winner ?? null
             : null,
-          estado.configuracao.idUsuario
+          state.configuration.userId
         );
 
-        const indexAtual = ordemJogo.indexOf(jogadorId);
-        const proximoJogador = ordemJogo[indexAtual + 1] ?? null;
+        const currentIndex = playOrder.indexOf(playerId);
+        const nextPlayer = playOrder[currentIndex + 1] ?? null;
 
-        // Verifica se a rodada está completa
-        const rodadaCompleta =
-          rodadaAtualizada.cartasJogadas.length === estado.configuracao.numeroJogadores;
+        // Verifica se a rodada está complete
+        const roundComplete =
+          currentRoundizada.playedCards.length === state.configuration.numberOfPlayers;
 
         set({
-          estado: {
-            ...estado,
-            rodadaAtual: rodadaAtualizada,
-            proximoJogador,
-            cartasJogadas,
-            maoUsuario,
-            analisesEstilo,
-            recomendacaoAtual: null, // Limpa recomendação após jogada
+          state: {
+            ...state,
+            currentRound: currentRoundizada,
+            nextPlayer,
+            playedCards,
+            userHand,
+            styleAnalyses,
+            currentRecommendation: null, // Limpa recomendação após jogada
           },
         });
 
-        if (rodadaCompleta) {
+        if (roundComplete) {
           return {
-            sucesso: true,
-            mensagem: 'Rodada completa! Finalize a rodada para ver o resultado.',
+            success: true,
+            message: 'Round complete! Finalize a rodada para ver o result.',
           };
         }
 
         return {
-          sucesso: true,
-          mensagem: `Carta registrada. Próximo: ${proximoJogador ?? 'desconhecido'}`,
+          success: true,
+          message: `Card registrada. Próximo: ${nextPlayer ?? 'desconhecido'}`,
         };
       },
 
-      finalizarRodada: (): ResultadoAcao => {
-        const { estado } = get();
+      finalizeRound: (): ActionResult => {
+        const { state } = get();
 
-        if (!estado.rodadaAtual) {
-          return { sucesso: false, erro: 'Nenhuma rodada ativa' };
+        if (!state.currentRound) {
+          return { success: false, error: 'Nenhuma rodada ativa' };
         }
 
-        // Determina vencedor
-        const resultado = determinarVencedorRodada(estado.rodadaAtual, estado.trunfo);
+        // Determina winner
+        const result = determineRoundWinner(state.currentRound, state.trump);
 
-        if (!resultado) {
-          return { sucesso: false, erro: 'Não foi possível determinar o vencedor' };
+        if (!result) {
+          return { success: false, error: 'Não foi possível determinar o winner' };
         }
 
-        // Atualiza rodada com vencedor
-        const rodadaFinalizada: Rodada = {
-          ...estado.rodadaAtual,
-          vencedor: resultado.vencedor,
-          pontosGanhos: resultado.pontosGanhos,
-          completa: true,
+        // Atualiza rodada com winner
+        const finalizedRound: Round = {
+          ...state.currentRound,
+          winner: result.winner,
+          pointsWon: result.pointsWon,
+          complete: true,
         };
 
-        // Atualiza pontos do jogador vencedor
-        const jogadores = { ...estado.jogadores };
-        const vencedor = jogadores[resultado.vencedor];
+        // Atualiza points do jogador winner
+        const players = { ...state.players };
+        const winner = players[result.winner];
 
-        if (vencedor) {
-          const cartasDaRodada = rodadaFinalizada.cartasJogadas.map((cj) => cj.carta);
-          vencedor.cartasGanhas = [...vencedor.cartasGanhas, ...cartasDaRodada];
-          vencedor.pontos += resultado.pontosGanhos;
-          jogadores[resultado.vencedor] = vencedor;
+        if (winner) {
+          const roundCards = finalizedRound.playedCards.map((cj) => cj.card);
+          winner.wonCards = [...winner.wonCards, ...roundCards];
+          winner.points += result.pointsWon;
+          players[result.winner] = winner;
         }
 
         // Adiciona rodada ao histórico
-        const rodadas = [...estado.rodadas, rodadaFinalizada];
+        const rounds = [...state.rounds, finalizedRound];
 
         // Verifica fim de jogo
-        const fimDeJogo = verificarFimDeJogo(estado.cartasJogadas);
+        const gameEnd = checkGameEnd(state.playedCards);
 
-        if (fimDeJogo) {
-          const pontosJogadores: Record<JogadorId, number> = {} as Record<
-            JogadorId,
+        if (gameEnd) {
+          const pointsPlayeres: Record<PlayerId, number> = {} as Record<
+            PlayerId,
             number
           >;
-          Object.entries(jogadores).forEach(([id, j]) => {
-            pontosJogadores[id as JogadorId] = j.pontos;
+          Object.entries(players).forEach(([id, j]) => {
+            pointsPlayeres[id as PlayerId] = j.points;
           });
 
-          const vencedorJogo = determinarVencedorJogo(
-            pontosJogadores,
-            estado.configuracao.numeroJogadores
+          const winnerJogo = determineGameWinner(
+            pointsPlayeres,
+            state.configuration.numberOfPlayers
           );
 
           set({
-            estado: {
-              ...estado,
-              status: StatusJogo.FINALIZADO,
-              rodadas,
-              rodadaAtual: null,
-              jogadores,
-              vencedor: vencedorJogo,
+            state: {
+              ...state,
+              status: GameStatus.FINISHED,
+              rounds,
+              currentRound: null,
+              players,
+              winner: winnerJogo,
             },
           });
 
           return {
-            sucesso: true,
-            mensagem: `Jogo finalizado! Vencedor: ${vencedorJogo ?? 'Empate'}`,
+            success: true,
+            message: `Jogo finalizado! Vencedor: ${winnerJogo ?? 'Empate'}`,
           };
         }
 
         // Cria nova rodada
-        const ordemJogo = determinarOrdemJogo(
-          estado.configuracao.numeroJogadores,
-          resultado.vencedor,
-          estado.configuracao.idUsuario
+        const playOrder = determinePlayOrder(
+          state.configuration.numberOfPlayers,
+          result.winner,
+          state.configuration.userId
         );
 
-        const novaRodada: Rodada = {
-          numero: rodadas.length + 1,
-          cartasJogadas: [],
-          vencedor: null,
-          pontosGanhos: 0,
-          completa: false,
+        const novaRound: Round = {
+          number: rounds.length + 1,
+          playedCards: [],
+          winner: null,
+          pointsWon: 0,
+          complete: false,
         };
 
         set({
-          estado: {
-            ...estado,
-            rodadas,
-            rodadaAtual: novaRodada,
-            jogadores,
-            proximoJogador: ordemJogo[0] ?? null,
+          state: {
+            ...state,
+            rounds,
+            currentRound: novaRound,
+            players,
+            nextPlayer: playOrder[0] ?? null,
           },
         });
 
         return {
-          sucesso: true,
-          mensagem: `Rodada finalizada! Vencedor: ${resultado.vencedor} (+${resultado.pontosGanhos} pontos)`,
+          success: true,
+          message: `Round finalizada! Vencedor: ${result.winner} (+${result.pointsWon} points)`,
         };
       },
 
-      atualizarMaoUsuario: (cartas: Carta[]): ResultadoAcao => {
-        const { estado } = get();
+      updateUserHand: (cards: Card[]): ActionResult => {
+        const { state } = get();
 
         set({
-          estado: {
-            ...estado,
-            maoUsuario: cartas,
+          state: {
+            ...state,
+            userHand: cards,
           },
         });
 
         return {
-          sucesso: true,
-          mensagem: 'Mão atualizada com sucesso',
+          success: true,
+          message: 'Mão atualizada com success',
         };
       },
 
-      solicitarRecomendacao: (): ResultadoAcao => {
-        const { estado } = get();
+      requestRecommendation: (): ActionResult => {
+        const { state } = get();
 
-        if (estado.maoUsuario.length === 0) {
+        if (state.userHand.length === 0) {
           return {
-            sucesso: false,
-            erro: 'Informe as cartas da sua mão primeiro',
+            success: false,
+            error: 'Informe as cards da sua mão primeiro',
           };
         }
 
-        const recomendacao = obterMelhorRecomendacao(estado);
+        const recommendation = getBestRecommendation(state);
 
         set({
-          estado: {
-            ...estado,
-            recomendacaoAtual: recomendacao,
+          state: {
+            ...state,
+            currentRecommendation: recommendation,
           },
         });
 
         return {
-          sucesso: true,
-          mensagem: recomendacao
-            ? `Recomendação: ${recomendacao.motivo}`
+          success: true,
+          message: recommendation
+            ? `Recomendação: ${recommendation.reason}`
             : 'Nenhuma recomendação disponível',
         };
       },
 
-      resetarJogo: (): ResultadoAcao => {
-        set({ estado: criarEstadoInicial() });
+      resetGame: (): ActionResult => {
+        set({ state: createInitialState() });
 
         return {
-          sucesso: true,
-          mensagem: 'Jogo resetado',
+          success: true,
+          message: 'Jogo resetado',
         };
       },
     }),
     {
       name: 'bisca-game-storage',
-      partialize: (state) => ({ estado: state.estado }),
+      partialize: (state) => ({ state: state.state }),
     }
   )
 );

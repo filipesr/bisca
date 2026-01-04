@@ -1,7 +1,7 @@
-import { Card, Suit } from '@/lib/bisca/types';
+import { Card as CardType, Suit } from '@/lib/bisca/types';
 
 type CardProps = {
-  carta: Card;
+  carta: CardType;
   onClick?: () => void;
   selected?: boolean;
   recommended?: boolean;

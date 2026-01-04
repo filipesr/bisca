@@ -1,248 +1,248 @@
 import {
-  AnaliseEstilo,
-  Carta,
-  CartaJogada,
-  EstiloJogo,
-  JogadorId,
-  Rodada,
+  StyleAnalysis,
+  Card,
+  PlayedCard,
+  PlayStyle,
+  PlayerId,
+  Round,
 } from './types';
-import { FORCA_CARTA, PONTOS_CARTA, isTrunfo } from './deck';
+import { CARD_STRENGTH, CARD_POINTS, isTrump } from './deck';
 
 /**
- * Analisa uma jogada para determinar se é agressiva ou defensiva
+ * Analyzes a play to determine if it's aggressive or defensive
  */
-type TipoJogada = 'agressiva' | 'defensiva' | 'neutra';
+type PlayType = 'aggressive' | 'defensive' | 'neutral';
 
-const analisarTipoJogada = (
-  cartaJogada: Carta,
-  rodada: Rodada,
-  trunfo: Carta | null,
-  maoJogador: Carta[]
-): TipoJogada => {
-  const pontosCartaJogada = PONTOS_CARTA[cartaJogada.valor] ?? 0;
-  const forcaCartaJogada = FORCA_CARTA[cartaJogada.valor] ?? 0;
+const analyzePlayType = (
+  playedCard: Card,
+  round: Round,
+  trump: Card | null,
+  playerHand: Card[]
+): PlayType => {
+  const playedCardPoints = CARD_POINTS[playedCard.rank] ?? 0;
+  const playedCardStrength = CARD_STRENGTH[playedCard.rank] ?? 0;
 
-  // Analisa contexto da rodada
-  const isPrimeiraJogada = rodada.cartasJogadas.length === 0;
-  const pontosNaRodada = rodada.cartasJogadas.reduce(
-    (sum, cj) => sum + cj.carta.pontos,
+  // Analyze round context
+  const isFirstPlay = round.playedCards.length === 0;
+  const roundPoints = round.playedCards.reduce(
+    (sum, pc) => sum + pc.card.points,
     0
   );
 
-  // Jogada agressiva: jogou carta com pontos ou carta forte
-  if (pontosCartaJogada >= 10) {
-    // Jogou Ás ou 7 (cartas de muitos pontos)
-    return 'agressiva';
+  // Aggressive play: played card with points or strong card
+  if (playedCardPoints >= 10) {
+    // Played Ace or 7 (cards with many points)
+    return 'aggressive';
   }
 
-  if (forcaCartaJogada >= 9 && isTrunfo(cartaJogada, trunfo)) {
-    // Jogou trunfo forte (Rei ou melhor)
-    return 'agressiva';
+  if (playedCardStrength >= 9 && isTrump(playedCard, trump)) {
+    // Played strong trump (King or better)
+    return 'aggressive';
   }
 
-  if (!isPrimeiraJogada && pontosNaRodada >= 10 && forcaCartaJogada >= 7) {
-    // Tentou ganhar rodada com pontos altos
-    return 'agressiva';
+  if (!isFirstPlay && roundPoints >= 10 && playedCardStrength >= 7) {
+    // Tried to win round with high points
+    return 'aggressive';
   }
 
-  // Jogada defensiva: jogou carta fraca quando tinha cartas fortes
-  const temCartasFortes = maoJogador.some(
-    (c) => (FORCA_CARTA[c.valor] ?? 0) >= 9 || (PONTOS_CARTA[c.valor] ?? 0) >= 10
+  // Defensive play: played weak card when had strong cards
+  const hasStrongCards = playerHand.some(
+    (c) => (CARD_STRENGTH[c.rank] ?? 0) >= 9 || (CARD_POINTS[c.rank] ?? 0) >= 10
   );
 
-  if (forcaCartaJogada <= 5 && temCartasFortes && pontosNaRodada >= 10) {
-    // Jogou carta fraca enquanto tinha fortes, com pontos na rodada
-    return 'defensiva';
+  if (playedCardStrength <= 5 && hasStrongCards && roundPoints >= 10) {
+    // Played weak card while having strong ones, with points in round
+    return 'defensive';
   }
 
-  if (pontosCartaJogada === 0 && forcaCartaJogada <= 6) {
-    // Jogou carta sem pontos e fraca
-    return 'defensiva';
+  if (playedCardPoints === 0 && playedCardStrength <= 6) {
+    // Played card without points and weak
+    return 'defensive';
   }
 
-  return 'neutra';
+  return 'neutral';
 };
 
 /**
- * Atualiza a análise de estilo de um jogador com base em uma nova jogada
+ * Updates a player's style analysis based on a new play
  */
-export const atualizarAnaliseEstilo = (
-  analiseAtual: AnaliseEstilo,
-  novaJogada: CartaJogada,
-  rodada: Rodada,
-  trunfo: Carta | null,
-  maoJogador: Carta[]
-): AnaliseEstilo => {
-  const tipoJogada = analisarTipoJogada(novaJogada.carta, rodada, trunfo, maoJogador);
+export const updateStyleAnalysis = (
+  currentAnalysis: StyleAnalysis,
+  newPlay: PlayedCard,
+  round: Round,
+  trump: Card | null,
+  playerHand: Card[]
+): StyleAnalysis => {
+  const playType = analyzePlayType(newPlay.card, round, trump, playerHand);
 
-  let jogadasAgressivas = analiseAtual.padroes.jogadasAgressivas;
-  let jogadasDefensivas = analiseAtual.padroes.jogadasDefensivas;
+  let aggressivePlays = currentAnalysis.patterns.aggressivePlays;
+  let defensivePlays = currentAnalysis.patterns.defensivePlays;
 
-  if (tipoJogada === 'agressiva') {
-    jogadasAgressivas++;
-  } else if (tipoJogada === 'defensiva') {
-    jogadasDefensivas++;
+  if (playType === 'aggressive') {
+    aggressivePlays++;
+  } else if (playType === 'defensive') {
+    defensivePlays++;
   }
 
-  const totalJogadas = analiseAtual.padroes.totalJogadas + 1;
+  const totalPlays = currentAnalysis.patterns.totalPlays + 1;
 
-  // Determina o estilo baseado nas proporções
-  let estilo = EstiloJogo.INDETERMINADO;
-  let confianca = 0;
+  // Determine style based on proportions
+  let style = PlayStyle.UNDETERMINED;
+  let confidence = 0;
 
-  if (totalJogadas >= 3) {
-    // Precisa de pelo menos 3 jogadas para ter uma análise
-    const proporcaoAgressiva = jogadasAgressivas / totalJogadas;
-    const proporcaoDefensiva = jogadasDefensivas / totalJogadas;
+  if (totalPlays >= 3) {
+    // Need at least 3 plays to have an analysis
+    const aggressiveRatio = aggressivePlays / totalPlays;
+    const defensiveRatio = defensivePlays / totalPlays;
 
-    if (proporcaoAgressiva >= 0.6) {
-      estilo = EstiloJogo.AGRESSIVO;
-      confianca = Math.min(100, Math.round(proporcaoAgressiva * 100));
-    } else if (proporcaoDefensiva >= 0.6) {
-      estilo = EstiloJogo.DEFENSIVO;
-      confianca = Math.min(100, Math.round(proporcaoDefensiva * 100));
+    if (aggressiveRatio >= 0.6) {
+      style = PlayStyle.AGGRESSIVE;
+      confidence = Math.min(100, Math.round(aggressiveRatio * 100));
+    } else if (defensiveRatio >= 0.6) {
+      style = PlayStyle.DEFENSIVE;
+      confidence = Math.min(100, Math.round(defensiveRatio * 100));
     } else {
-      estilo = EstiloJogo.EQUILIBRADO;
-      confianca = Math.round(
-        (1 - Math.abs(proporcaoAgressiva - proporcaoDefensiva)) * 100
+      style = PlayStyle.BALANCED;
+      confidence = Math.round(
+        (1 - Math.abs(aggressiveRatio - defensiveRatio)) * 100
       );
     }
   }
 
   return {
-    jogadorId: analiseAtual.jogadorId,
-    estilo,
-    confianca,
-    padroes: {
-      jogadasAgressivas,
-      jogadasDefensivas,
-      totalJogadas,
+    playerId: currentAnalysis.playerId,
+    style,
+    confidence,
+    patterns: {
+      aggressivePlays,
+      defensivePlays,
+      totalPlays,
     },
   };
 };
 
 /**
- * Cria uma análise de estilo inicial
+ * Creates an initial style analysis
  */
-export const criarAnaliseEstiloInicial = (
-  jogadorId: JogadorId
-): AnaliseEstilo => {
+export const createInitialStyleAnalysis = (
+  playerId: PlayerId
+): StyleAnalysis => {
   return {
-    jogadorId,
-    estilo: EstiloJogo.INDETERMINADO,
-    confianca: 0,
-    padroes: {
-      jogadasAgressivas: 0,
-      jogadasDefensivas: 0,
-      totalJogadas: 0,
+    playerId,
+    style: PlayStyle.UNDETERMINED,
+    confidence: 0,
+    patterns: {
+      aggressivePlays: 0,
+      defensivePlays: 0,
+      totalPlays: 0,
     },
   };
 };
 
 /**
- * Analisa todas as jogadas de um jogador até agora
+ * Analyzes all of a player's plays so far
  */
-export const analisarEstiloCompleto = (
-  jogadorId: JogadorId,
-  rodadas: Rodada[],
-  trunfo: Carta | null,
-  maoAtual: Carta[]
-): AnaliseEstilo => {
-  let analise = criarAnaliseEstiloInicial(jogadorId);
+export const analyzeCompleteStyle = (
+  playerId: PlayerId,
+  rounds: Round[],
+  trump: Card | null,
+  currentHand: Card[]
+): StyleAnalysis => {
+  let analysis = createInitialStyleAnalysis(playerId);
 
-  for (const rodada of rodadas) {
-    const jogadaDoJogador = rodada.cartasJogadas.find(
-      (cj) => cj.jogadorId === jogadorId
+  for (const round of rounds) {
+    const playerPlay = round.playedCards.find(
+      (pc) => pc.playerId === playerId
     );
 
-    if (jogadaDoJogador) {
-      // Para análise histórica, usamos a mão atual como aproximação
-      // Em um sistema real, você guardaria a mão de cada rodada
-      analise = atualizarAnaliseEstilo(
-        analise,
-        jogadaDoJogador,
-        rodada,
-        trunfo,
-        maoAtual
+    if (playerPlay) {
+      // For historical analysis, we use current hand as approximation
+      // In a real system, you would store the hand from each round
+      analysis = updateStyleAnalysis(
+        analysis,
+        playerPlay,
+        round,
+        trump,
+        currentHand
       );
     }
   }
 
-  return analise;
+  return analysis;
 };
 
 /**
- * Gera descrição textual do estilo
+ * Generates textual description of the style
  */
-export const descreverEstilo = (analise: AnaliseEstilo): string => {
-  if (analise.confianca < 40) {
+export const describeStyle = (analysis: StyleAnalysis): string => {
+  if (analysis.confidence < 40) {
     return 'Padrão de jogo ainda indeterminado. Preciso de mais jogadas para análise.';
   }
 
-  switch (analise.estilo) {
-    case EstiloJogo.AGRESSIVO:
-      return `Jogador agressivo (${analise.confianca}% confiança). Tende a jogar cartas fortes para ganhar pontos.`;
-    case EstiloJogo.DEFENSIVO:
-      return `Jogador defensivo (${analise.confianca}% confiança). Tende a preservar cartas fortes e jogar cartas fracas.`;
-    case EstiloJogo.EQUILIBRADO:
-      return `Jogador equilibrado (${analise.confianca}% confiança). Alterna entre jogadas agressivas e defensivas.`;
+  switch (analysis.style) {
+    case PlayStyle.AGGRESSIVE:
+      return `Jogador agressivo (${analysis.confidence}% confiança). Tende a jogar cartas fortes para ganhar pontos.`;
+    case PlayStyle.DEFENSIVE:
+      return `Jogador defensivo (${analysis.confidence}% confiança). Tende a preservar cartas fortes e jogar cartas fracas.`;
+    case PlayStyle.BALANCED:
+      return `Jogador equilibrado (${analysis.confidence}% confiança). Alterna entre jogadas agressivas e defensivas.`;
     default:
       return 'Padrão de jogo ainda indeterminado.';
   }
 };
 
 /**
- * Calcula ajuste na recomendação baseado no estilo do oponente
+ * Calculates recommendation adjustment based on opponent's style
  */
-export const calcularAjusteEstilo = (
-  estiloOponente: EstiloJogo,
-  confianca: number
+export const calculateStyleAdjustment = (
+  opponentStyle: PlayStyle,
+  confidence: number
 ): {
-  preferirAgressivo: boolean;
-  preferirDefensivo: boolean;
-  fatorAjuste: number;
+  preferAggressive: boolean;
+  preferDefensive: boolean;
+  adjustmentFactor: number;
 } => {
-  // Só ajusta se tiver confiança razoável
-  if (confianca < 50) {
+  // Only adjust if there's reasonable confidence
+  if (confidence < 50) {
     return {
-      preferirAgressivo: false,
-      preferirDefensivo: false,
-      fatorAjuste: 0,
+      preferAggressive: false,
+      preferDefensive: false,
+      adjustmentFactor: 0,
     };
   }
 
-  const fatorAjuste = confianca / 100;
+  const adjustmentFactor = confidence / 100;
 
-  switch (estiloOponente) {
-    case EstiloJogo.AGRESSIVO:
-      // Contra jogador agressivo, pode ser defensivo
+  switch (opponentStyle) {
+    case PlayStyle.AGGRESSIVE:
+      // Against aggressive player, can be defensive
       return {
-        preferirAgressivo: false,
-        preferirDefensivo: true,
-        fatorAjuste,
+        preferAggressive: false,
+        preferDefensive: true,
+        adjustmentFactor,
       };
 
-    case EstiloJogo.DEFENSIVO:
-      // Contra jogador defensivo, seja agressivo
+    case PlayStyle.DEFENSIVE:
+      // Against defensive player, be aggressive
       return {
-        preferirAgressivo: true,
-        preferirDefensivo: false,
-        fatorAjuste,
+        preferAggressive: true,
+        preferDefensive: false,
+        adjustmentFactor,
       };
 
-    case EstiloJogo.EQUILIBRADO:
-      // Contra equilibrado, mantenha equilíbrio
+    case PlayStyle.BALANCED:
+      // Against balanced, maintain balance
       return {
-        preferirAgressivo: false,
-        preferirDefensivo: false,
-        fatorAjuste: fatorAjuste * 0.5,
+        preferAggressive: false,
+        preferDefensive: false,
+        adjustmentFactor: adjustmentFactor * 0.5,
       };
 
     default:
       return {
-        preferirAgressivo: false,
-        preferirDefensivo: false,
-        fatorAjuste: 0,
+        preferAggressive: false,
+        preferDefensive: false,
+        adjustmentFactor: 0,
       };
   }
 };
