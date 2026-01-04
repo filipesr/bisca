@@ -138,6 +138,21 @@ O assistente analisa:
 - Risco: Médio
 - Motivo: "4 pontos em jogo, vale tentar ganhar. Trunfo forte para garantir pontos."
 
+## 📚 Documentação
+
+### Documentação Completa
+
+- **[DEVELOPMENT.md](./DEVELOPMENT.md)** - Plano de desenvolvimento, funcionalidades implementadas e roadmap
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Arquitetura técnica detalhada, fluxos de dados e algoritmos
+- **[AI-ENGINE.md](./AI-ENGINE.md)** - Documentação completa dos algoritmos de IA e recomendações
+- **[CHANGELOG.md](./CHANGELOG.md)** - Histórico de versões e mudanças
+
+### Guias Rápidos
+
+- **Para Desenvolvedores**: Leia [ARCHITECTURE.md](./ARCHITECTURE.md) para entender a estrutura do código
+- **Para Entender a IA**: Veja [AI-ENGINE.md](./AI-ENGINE.md) para detalhes dos algoritmos
+- **Para Roadmap**: Consulte [DEVELOPMENT.md](./DEVELOPMENT.md) para funcionalidades planejadas
+
 ## 🏗️ Arquitetura
 
 ### Tecnologias
