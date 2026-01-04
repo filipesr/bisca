@@ -10,6 +10,8 @@ import {
   Round,
   PlayedCard,
   ActionResult,
+  Team,
+  TeamId,
 } from '../bisca/types';
 import {
   createDeck,
@@ -22,6 +24,7 @@ import {
   determinePlayOrder,
   checkGameEnd,
   determineGameWinner,
+  getTeamIdByPlayerId,
 } from '../bisca/rules';
 import {
   createInitialStyleAnalysis,
@@ -40,10 +43,12 @@ const createInitialState = (): GameState => ({
     userId: 'player1',
   },
   players: {} as Record<PlayerId, Player>,
+  teams: undefined,
   trump: null,
   rounds: [],
   currentRound: null,
   nextPlayer: null,
+  firstPlayer: null,
   cardsInDeck: 40,
   playedCards: [],
   userHand: [],
@@ -111,8 +116,23 @@ export const useGameStore = create<GameStore>()(
             styleAnalyses[id as PlayerId] = createInitialStyleAnalysis(id as PlayerId);
           });
 
-          // Define primeiro jogador
-          const playOrder = determinePlayOrder(configuration.numberOfPlayers, null, configuration.userId);
+          // Cria times se for 4 jogadores
+          const teams = configuration.numberOfPlayers === 4 ? {
+            team1: {
+              id: 'team1' as TeamId,
+              name: `${configuration.playerNames[0]} & ${configuration.playerNames[2]}`,
+              points: 0,
+              wonCards: [],
+              playerIds: ['player1' as PlayerId, 'player3' as PlayerId],
+            },
+            team2: {
+              id: 'team2' as TeamId,
+              name: `${configuration.playerNames[1]} & ${configuration.playerNames[3]}`,
+              points: 0,
+              wonCards: [],
+              playerIds: ['player2' as PlayerId, 'player4' as PlayerId],
+            },
+          } as Record<TeamId, Team> : undefined;
 
           // Cria primeira rodada
           const firstRound: Round = {
@@ -128,10 +148,12 @@ export const useGameStore = create<GameStore>()(
               status: GameStatus.IN_PROGRESS,
               configuration: configuration,
               players,
+              teams,
               trump,
               rounds: [],
               currentRound: firstRound,
-              nextPlayer: playOrder[0] ?? null,
+              nextPlayer: null, // Será definido quando a primeira carta for jogada
+              firstPlayer: null, // Será definido quando a primeira carta for jogada
               cardsInDeck: 40,
               playedCards: [],
               userHand: [],
@@ -164,8 +186,14 @@ export const useGameStore = create<GameStore>()(
           return { success: false, error: 'Nenhuma rodada ativa' };
         }
 
-        if (state.nextPlayer !== playerId) {
-          return { success: false, error: 'Não é a vez deste jogador' };
+        // VALIDAÇÃO DE ORDEM FORÇADA
+        // Se nextPlayer já está definido (não é a primeira jogada), validar ordem
+        if (state.nextPlayer !== null && state.nextPlayer !== playerId) {
+          const nextPlayerName = state.players[state.nextPlayer]?.name ?? 'Desconhecido';
+          return {
+            success: false,
+            error: `Não é a vez de jogar! Aguarde ${nextPlayerName}`
+          };
         }
 
         // Registra a jogada
@@ -206,15 +234,32 @@ export const useGameStore = create<GameStore>()(
           );
         }
 
-        // Determina próximo jogador
-        const playOrder = determinePlayOrder(
-          state.configuration.numberOfPlayers,
-          state.rounds.length > 0
-            ? state.rounds[state.rounds.length - 1]?.winner ?? null
-            : null,
-          state.configuration.userId
-        );
+        // LÓGICA DE PRIMEIRA JOGADA DINÂMICA
+        let firstPlayer = state.firstPlayer;
+        let playOrder: PlayerId[];
 
+        if (state.firstPlayer === null && state.rounds.length === 0 && order === 1) {
+          // Esta é a PRIMEIRA CARTA do jogo! Define o primeiro jogador
+          firstPlayer = playerId;
+          playOrder = determinePlayOrder(
+            state.configuration.numberOfPlayers,
+            null,
+            firstPlayer
+          );
+        } else {
+          // Jogadas subsequentes: usar firstPlayer já definido
+          const previousWinner = state.rounds.length > 0
+            ? state.rounds[state.rounds.length - 1]?.winner ?? null
+            : null;
+
+          playOrder = determinePlayOrder(
+            state.configuration.numberOfPlayers,
+            previousWinner,
+            firstPlayer
+          );
+        }
+
+        // Determina próximo jogador
         const currentIndex = playOrder.indexOf(playerId);
         const nextPlayer = playOrder[currentIndex + 1] ?? null;
 
@@ -227,6 +272,7 @@ export const useGameStore = create<GameStore>()(
             ...state,
             currentRound: currentRoundizada,
             nextPlayer,
+            firstPlayer,
             playedCards,
             userHand,
             styleAnalyses,
@@ -269,19 +315,32 @@ export const useGameStore = create<GameStore>()(
           complete: true,
         };
 
-        // Atualiza points do jogador winner
+        const roundCards = finalizedRound.playedCards.map((cj) => cj.card);
+
+        // Atualiza pontos: TIMES (4 jogadores) ou JOGADORES (2 jogadores)
         const players = { ...state.players };
+        let teams = state.teams ? { ...state.teams } : undefined;
 
-        if (players[result.winner]) {
-          const winner = players[result.winner];
-          const roundCards = finalizedRound.playedCards.map((cj) => cj.card);
+        if (state.teams) {
+          // MODO 4 JOGADORES: Atualizar TIME ao invés de jogador individual
+          const winnerTeamId = getTeamIdByPlayerId(result.winner);
+          const winnerTeam = teams![winnerTeamId];
 
-          // Criar NOVO objeto player ao invés de mutar
-          players[result.winner] = {
-            ...winner,
-            wonCards: [...winner.wonCards, ...roundCards],
-            points: winner.points + result.pointsWon,
+          teams![winnerTeamId] = {
+            ...winnerTeam,
+            wonCards: [...winnerTeam.wonCards, ...roundCards],
+            points: winnerTeam.points + result.pointsWon,
           };
+        } else {
+          // MODO 2 JOGADORES: Atualizar jogador individual
+          if (players[result.winner]) {
+            const winner = players[result.winner];
+            players[result.winner] = {
+              ...winner,
+              wonCards: [...winner.wonCards, ...roundCards],
+              points: winner.points + result.pointsWon,
+            };
+          }
         }
 
         // Adiciona rodada ao histórico
@@ -291,18 +350,32 @@ export const useGameStore = create<GameStore>()(
         const gameEnd = checkGameEnd(state.playedCards);
 
         if (gameEnd) {
-          const pointsPlayeres: Record<PlayerId, number> = {} as Record<
-            PlayerId,
-            number
-          >;
-          Object.entries(players).forEach(([id, j]) => {
-            pointsPlayeres[id as PlayerId] = j.points;
-          });
+          let winnerJogo: PlayerId | TeamId | null;
 
-          const winnerJogo = determineGameWinner(
-            pointsPlayeres,
-            state.configuration.numberOfPlayers
-          );
+          if (state.teams) {
+            // Determinar time vencedor
+            const team1Points = teams!.team1.points;
+            const team2Points = teams!.team2.points;
+
+            if (team1Points > team2Points) {
+              winnerJogo = 'team1';
+            } else if (team2Points > team1Points) {
+              winnerJogo = 'team2';
+            } else {
+              winnerJogo = null; // Empate
+            }
+          } else {
+            // Determinar jogador vencedor
+            const pointsPlayeres: Record<PlayerId, number> = {} as Record<PlayerId, number>;
+            Object.entries(players).forEach(([id, j]) => {
+              pointsPlayeres[id as PlayerId] = j.points;
+            });
+
+            winnerJogo = determineGameWinner(
+              pointsPlayeres,
+              state.configuration.numberOfPlayers
+            );
+          }
 
           set({
             state: {
@@ -311,13 +384,18 @@ export const useGameStore = create<GameStore>()(
               rounds,
               currentRound: null,
               players,
+              teams,
               winner: winnerJogo,
             },
           });
 
+          const winnerMessage = state.teams
+            ? teams![winnerJogo as TeamId]?.name ?? 'Empate'
+            : state.players[winnerJogo as PlayerId]?.name ?? 'Empate';
+
           return {
             success: true,
-            message: `Jogo finalizado! Vencedor: ${winnerJogo ?? 'Empate'}`,
+            message: `Jogo finalizado! Vencedor: ${winnerMessage}`,
           };
         }
 
@@ -325,7 +403,7 @@ export const useGameStore = create<GameStore>()(
         const playOrder = determinePlayOrder(
           state.configuration.numberOfPlayers,
           result.winner,
-          state.configuration.userId
+          state.firstPlayer
         );
 
         const novaRound: Round = {
@@ -342,6 +420,7 @@ export const useGameStore = create<GameStore>()(
             rounds,
             currentRound: novaRound,
             players,
+            teams,
             nextPlayer: playOrder[0] ?? null,
           },
         });

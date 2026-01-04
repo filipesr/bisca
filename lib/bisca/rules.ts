@@ -1,5 +1,17 @@
-import { Card, PlayerId, Round } from './types';
+import { Card, PlayerId, Round, TeamId } from './types';
 import { compareCards, calculatePoints } from './deck';
+
+/**
+ * Gets the team ID for a given player
+ * Team 1: player1 + player3
+ * Team 2: player2 + player4
+ */
+export const getTeamIdByPlayerId = (playerId: PlayerId): TeamId => {
+  if (playerId === 'player1' || playerId === 'player3') {
+    return 'team1';
+  }
+  return 'team2';
+};
 
 /**
  * Determines the winner of a round
@@ -92,17 +104,19 @@ export const determine4PlayerPlayOrder = (
 
 /**
  * Determines play order based on number of players
+ * firstPlayerOfGame can be null if first player hasn't been determined yet
  */
 export const determinePlayOrder = (
   numberOfPlayers: 2 | 4,
   previousRoundWinner: PlayerId | null,
-  firstPlayerOfMatch: PlayerId = 'player1'
+  firstPlayerOfGame: PlayerId | null = null
 ): PlayerId[] => {
   if (numberOfPlayers === 2) {
     return determine2PlayerPlayOrder(previousRoundWinner);
   }
 
-  return determine4PlayerPlayOrder(previousRoundWinner, firstPlayerOfMatch);
+  // If firstPlayerOfGame is null, return default order (will be reordered after first play)
+  return determine4PlayerPlayOrder(previousRoundWinner, firstPlayerOfGame ?? 'player1');
 };
 
 /**

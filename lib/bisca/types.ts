@@ -43,6 +43,24 @@ export type Card = {
 export type PlayerId = 'player1' | 'player2' | 'player3' | 'player4';
 
 /**
+ * Team identifier (for 4-player mode)
+ */
+export type TeamId = 'team1' | 'team2';
+
+/**
+ * Team information (4-player mode)
+ * Team 1: player1 + player3
+ * Team 2: player2 + player4
+ */
+export type Team = {
+  id: TeamId;
+  name: string;
+  points: number;
+  wonCards: Card[];
+  playerIds: PlayerId[];
+};
+
+/**
  * Player information
  */
 export type Player = {
@@ -152,14 +170,16 @@ export type GameState = {
   status: GameStatus;
   configuration: GameConfiguration;
   players: Record<PlayerId, Player>;
+  teams?: Record<TeamId, Team> | undefined; // Only for 4-player mode
   trump: Card | null;
   rounds: Round[];
   currentRound: Round | null;
   nextPlayer: PlayerId | null;
+  firstPlayer: PlayerId | null; // First player of the entire game (set on first card played)
   cardsInDeck: number;
   playedCards: Card[];
   userHand: Card[];
-  winner: PlayerId | null;
+  winner: PlayerId | TeamId | null; // Can be team winner in 4-player mode
   styleAnalyses: Record<PlayerId, StyleAnalysis>;
   currentRecommendation: Recommendation | null;
 };

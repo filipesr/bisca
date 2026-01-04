@@ -159,19 +159,52 @@ const GamePage = () => {
           {/* Placar */}
           <div className="bg-white rounded-xl shadow-lg p-4">
             <h3 className="font-semibold text-gray-900 mb-3">Placar</h3>
-            <div className="space-y-2">
-              {jogadores.map((jogador) => (
-                <div
-                  key={jogador.id}
-                  className={`flex items-center justify-between p-2 rounded-lg ${
-                    jogador.id === usuarioId ? 'bg-green-100' : 'bg-gray-50'
-                  }`}
-                >
-                  <span className="font-medium">{jogador.name}</span>
-                  <span className="font-bold text-green-600">{jogador.points} pts</span>
+            {state.teams ? (
+              // MODO 4 JOGADORES - Mostrar TIMES
+              <div className="space-y-3">
+                <div className="p-3 rounded-lg bg-blue-50 border-2 border-blue-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-bold text-blue-900">🔵 {state.teams.team1.name}</span>
+                    <span className="font-bold text-2xl text-blue-600">{state.teams.team1.points}</span>
+                  </div>
+                  <div className="text-xs text-blue-700 flex gap-2">
+                    {state.teams.team1.playerIds.map((pid) => (
+                      <span key={pid} className={state.players[pid]?.isUser ? 'font-semibold' : ''}>
+                        {state.players[pid]?.name}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              ))}
-            </div>
+                <div className="p-3 rounded-lg bg-red-50 border-2 border-red-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-bold text-red-900">🔴 {state.teams.team2.name}</span>
+                    <span className="font-bold text-2xl text-red-600">{state.teams.team2.points}</span>
+                  </div>
+                  <div className="text-xs text-red-700 flex gap-2">
+                    {state.teams.team2.playerIds.map((pid) => (
+                      <span key={pid} className={state.players[pid]?.isUser ? 'font-semibold' : ''}>
+                        {state.players[pid]?.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // MODO 2 JOGADORES - Mostrar jogadores individuais
+              <div className="space-y-2">
+                {jogadores.map((jogador) => (
+                  <div
+                    key={jogador.id}
+                    className={`flex items-center justify-between p-2 rounded-lg ${
+                      jogador.id === usuarioId ? 'bg-green-100' : 'bg-gray-50'
+                    }`}
+                  >
+                    <span className="font-medium">{jogador.name}</span>
+                    <span className="font-bold text-green-600">{jogador.points} pts</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -181,6 +214,31 @@ const GamePage = () => {
           trump={state.trump}
           players={state.players}
         />
+
+        {/* Indicador de Próximo Jogador */}
+        {state.nextPlayer && !rodadaCompleta && (
+          <div className="bg-blue-50 border-2 border-blue-400 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-blue-900">Vez de jogar:</p>
+                <p className="text-xl font-bold text-blue-600">
+                  {state.players[state.nextPlayer]?.name}
+                </p>
+              </div>
+              {state.nextPlayer !== usuarioId && (
+                <button
+                  onClick={() => {
+                    setJogadorSelecionado(state.nextPlayer);
+                    setMostrarSeletorJogada(true);
+                  }}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+                >
+                  Registrar Jogada
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Finalizar Rodada */}
         {rodadaCompleta && (
@@ -196,48 +254,6 @@ const GamePage = () => {
             </button>
           </div>
         )}
-
-        {/* Botões para Registrar Jogadas dos Oponentes */}
-        <div className="bg-white rounded-xl shadow-lg p-4">
-          <h3 className="font-semibold text-gray-900 mb-3">Registrar Jogadas dos Oponentes</h3>
-          <div className="flex flex-col gap-2">
-            {jogadores
-              .filter((j) => j.id !== usuarioId)
-              .map((jogador) => {
-                const isNextPlayer = jogador.id === state.nextPlayer;
-
-                return (
-                  <div key={jogador.id} className="flex flex-col gap-1">
-                    <button
-                      onClick={() => {
-                        if (jogador.id !== state.nextPlayer) {
-                          const nextPlayerName = jogadores.find(
-                            (j) => j.id === state.nextPlayer
-                          )?.name;
-                          setMensagem(`Atenção: ${nextPlayerName} deve jogar primeiro`);
-                        }
-                        setJogadorSelecionado(jogador.id);
-                        setMostrarSeletorJogada(true);
-                      }}
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                        isNextPlayer
-                          ? 'bg-blue-600 hover:bg-blue-700 text-white ring-2 ring-blue-300'
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                      }`}
-                    >
-                      Registrar jogada de {jogador.name}
-                      {isNextPlayer && ' ⬅️'}
-                    </button>
-                    {isNextPlayer && (
-                      <span className="text-xs text-blue-600 font-medium pl-2">
-                        Próximo a jogar
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-          </div>
-        </div>
 
         {/* Minha Mão */}
         <div className="bg-white rounded-xl shadow-lg p-4">
