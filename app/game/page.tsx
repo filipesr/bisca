@@ -34,7 +34,15 @@ const GamePage = () => {
   const handleAdicionarCardMao = (carta: Card): void => {
     const novaMao = [...state.userHand, carta];
     updateUserHand(novaMao);
-    setMensagem(`${cardToString(carta)} adicionada à sua mão`);
+
+    // Auto-fechar modal quando atingir 3 cartas
+    if (novaMao.length === 3) {
+      setMostrarSeletorMao(false);
+      setMensagem(`${cardToString(carta)} adicionada. Mão completa!`);
+    } else {
+      setMensagem(`${cardToString(carta)} adicionada à sua mão`);
+    }
+
     setTimeout(() => setMensagem(''), 3000);
   };
 
@@ -64,7 +72,20 @@ const GamePage = () => {
   };
 
   const handleFinalizarRodada = (): void => {
+    console.log('🎯 Finalizando rodada...', {
+      currentRound: state.currentRound,
+      playedCards: state.currentRound?.playedCards.length,
+      numberOfPlayers: state.configuration.numberOfPlayers,
+    });
+
     const resultado = finalizeRound();
+
+    console.log('📊 Resultado finalizeRound:', resultado);
+    console.log('📈 State após finalizar:', {
+      roundsCount: state.rounds.length,
+      players: state.players,
+    });
+
     setMensagem(resultado.message ?? resultado.error ?? '');
     setTimeout(() => setMensagem(''), 3000);
   };
@@ -145,15 +166,24 @@ const GamePage = () => {
 
         {/* Rodada Atual */}
         <div className="bg-white rounded-xl shadow-lg p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-900">Cards Jogadas nesta Rodada</h3>
-            {rodadaCompleta && (
-              <button
-                onClick={handleFinalizarRodada}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
-              >
-                Finalizar Rodada
-              </button>
+          <div className="mb-4">
+            <h3 className="font-semibold text-gray-900 mb-2">Cards Jogadas nesta Rodada</h3>
+            {rodadaCompleta ? (
+              <div className="bg-green-50 border-2 border-green-500 rounded-lg p-3">
+                <p className="text-sm text-green-700 font-medium mb-2">
+                  ✅ Todos jogaram! Finalize a rodada para ver o vencedor.
+                </p>
+                <button
+                  onClick={handleFinalizarRodada}
+                  className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
+                >
+                  🏆 Finalizar Rodada
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">
+                Aguardando jogadas... ({state.currentRound?.playedCards.length ?? 0}/{state.configuration.numberOfPlayers})
+              </p>
             )}
           </div>
 

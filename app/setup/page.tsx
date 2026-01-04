@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGameStore } from '@/lib/store/game-store';
-import { GameConfiguration, PlayerId } from '@/lib/bisca/types';
+import { GameConfiguration, PlayerId, Card } from '@/lib/bisca/types';
+import { CardSelector } from '@/components/game/card-selector';
+import { Card as PlayingCard } from '@/components/game/card';
 
 const SetupPage = () => {
   const router = useRouter();
@@ -14,6 +16,46 @@ const SetupPage = () => {
   const [opponentName1, setNomeOponente1] = useState('');
   const [opponentName2, setNomeOponente2] = useState('');
   const [opponentName3, setNomeOponente3] = useState('');
+  const [trump, setTrump] = useState<Card | null>(null);
+  const [showTrumpSelector, setShowTrumpSelector] = useState(false);
+
+  // Carregar dados salvos do localStorage
+  useEffect(() => {
+    const savedNumberOfPlayers = localStorage.getItem('bisca-numberOfPlayers');
+    const savedUserName = localStorage.getItem('bisca-userName');
+    const savedOpponent1 = localStorage.getItem('bisca-opponent1');
+    const savedOpponent2 = localStorage.getItem('bisca-opponent2');
+    const savedOpponent3 = localStorage.getItem('bisca-opponent3');
+
+    if (savedNumberOfPlayers) {
+      setNumeroJogadores(parseInt(savedNumberOfPlayers) as 2 | 4);
+    }
+    if (savedUserName) setNomeUsuario(savedUserName);
+    if (savedOpponent1) setNomeOponente1(savedOpponent1);
+    if (savedOpponent2) setNomeOponente2(savedOpponent2);
+    if (savedOpponent3) setNomeOponente3(savedOpponent3);
+  }, []);
+
+  // Salvar dados no localStorage quando mudarem
+  useEffect(() => {
+    localStorage.setItem('bisca-numberOfPlayers', numberOfPlayers.toString());
+  }, [numberOfPlayers]);
+
+  useEffect(() => {
+    if (userName) localStorage.setItem('bisca-userName', userName);
+  }, [userName]);
+
+  useEffect(() => {
+    if (opponentName1) localStorage.setItem('bisca-opponent1', opponentName1);
+  }, [opponentName1]);
+
+  useEffect(() => {
+    if (opponentName2) localStorage.setItem('bisca-opponent2', opponentName2);
+  }, [opponentName2]);
+
+  useEffect(() => {
+    if (opponentName3) localStorage.setItem('bisca-opponent3', opponentName3);
+  }, [opponentName3]);
 
   const handleIniciar = (): void => {
     const playerNames: string[] = [userName || 'Você'];
@@ -32,6 +74,7 @@ const SetupPage = () => {
       numberOfPlayers,
       playerNames,
       userId: 'player1' as PlayerId,
+      trump: trump,
     };
 
     const resultado = startGame(configuracao);
@@ -39,6 +82,11 @@ const SetupPage = () => {
     if (resultado.success) {
       router.push('/game');
     }
+  };
+
+  const handleSelectTrump = (card: Card): void => {
+    setTrump(card);
+    setShowTrumpSelector(false);
   };
 
   return (
@@ -137,6 +185,35 @@ const SetupPage = () => {
               </div>
             </>
           )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Trunfo (Opcional)
+            </label>
+            <div className="space-y-2">
+              {trump ? (
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <PlayingCard carta={trump} small />
+                  <button
+                    onClick={() => setTrump(null)}
+                    className="ml-auto px-3 py-1 text-sm bg-red-500 hover:bg-red-600 text-white rounded"
+                  >
+                    Remover
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowTrumpSelector(true)}
+                  className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors text-gray-600 hover:text-green-600"
+                >
+                  + Selecionar Trunfo
+                </button>
+              )}
+              <p className="text-xs text-gray-500">
+                Se não selecionar, será usada a última carta do baralho
+              </p>
+            </div>
+          </div>
         </div>
 
         <button
@@ -146,6 +223,15 @@ const SetupPage = () => {
           Iniciar Partida
         </button>
       </div>
+
+      {/* Modal do Seletor de Trunfo */}
+      {showTrumpSelector && (
+        <CardSelector
+          title="Selecionar Trunfo"
+          onSelect={handleSelectTrump}
+          onCancel={() => setShowTrumpSelector(false)}
+        />
+      )}
     </div>
   );
 };

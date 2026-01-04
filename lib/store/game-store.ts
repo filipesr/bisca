@@ -99,8 +99,8 @@ export const useGameStore = create<GameStore>()(
           // Cria deck e embaralha
           const deck = shuffle(createDeck());
 
-          // Trunfo é a última card do deck
-          const trump = deck[deck.length - 1] ?? null;
+          // Trunfo é o configurado ou a última card do deck
+          const trump = configuration.trump ?? deck[deck.length - 1] ?? null;
 
           // Cria players
           const players = createPlayers(configuration);

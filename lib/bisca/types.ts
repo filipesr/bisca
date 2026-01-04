@@ -61,6 +61,7 @@ export type GameConfiguration = {
   numberOfPlayers: 2 | 4;
   playerNames: string[];
   userId: PlayerId;
+  trump?: Card | null;
 };
 
 /**
