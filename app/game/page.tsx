@@ -173,21 +173,42 @@ const GamePage = () => {
           )}
 
           {/* Botões para Registrar Jogadas */}
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-col gap-2">
             {jogadores
               .filter((j) => j.id !== usuarioId)
-              .map((jogador) => (
-                <button
-                  key={jogador.id}
-                  onClick={() => {
-                    setJogadorSelecionado(jogador.id);
-                    setMostrarSeletorJogada(true);
-                  }}
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
-                >
-                  Registrar jogada de {jogador.name}
-                </button>
-              ))}
+              .map((jogador) => {
+                const isNextPlayer = jogador.id === state.nextPlayer;
+
+                return (
+                  <div key={jogador.id} className="flex flex-col gap-1">
+                    <button
+                      onClick={() => {
+                        if (jogador.id !== state.nextPlayer) {
+                          const nextPlayerName = jogadores.find(
+                            (j) => j.id === state.nextPlayer
+                          )?.name;
+                          setMensagem(`Atenção: ${nextPlayerName} deve jogar primeiro`);
+                        }
+                        setJogadorSelecionado(jogador.id);
+                        setMostrarSeletorJogada(true);
+                      }}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                        isNextPlayer
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white ring-2 ring-blue-300'
+                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                      }`}
+                    >
+                      Registrar jogada de {jogador.name}
+                      {isNextPlayer && ' ⬅️'}
+                    </button>
+                    {isNextPlayer && (
+                      <span className="text-xs text-blue-600 font-medium pl-2">
+                        Próximo a jogar
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
           </div>
         </div>
 
@@ -197,9 +218,14 @@ const GamePage = () => {
             <h3 className="font-semibold text-gray-900">Minha Mão</h3>
             <button
               onClick={() => setMostrarSeletorMao(true)}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+              disabled={state.userHand.length >= 3}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                state.userHand.length >= 3
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-green-600 hover:bg-green-700 text-white'
+              }`}
             >
-              + Adicionar Card
+              + Adicionar Card {state.userHand.length >= 3 && '(Mão cheia)'}
             </button>
           </div>
 
@@ -279,6 +305,59 @@ const GamePage = () => {
             ))}
           </div>
         </div>
+
+        {/* Histórico de Rodadas */}
+        {state.rounds.length > 0 && (
+          <div className="bg-white rounded-xl shadow-lg p-4">
+            <h3 className="font-semibold text-gray-900 mb-3">Histórico de Rodadas</h3>
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {state.rounds
+                .slice()
+                .reverse()
+                .map((rodada) => {
+                  const vencedor = state.players[rodada.winner!];
+
+                  return (
+                    <div
+                      key={rodada.number}
+                      className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-semibold text-gray-700">
+                          Rodada {rodada.number}
+                        </span>
+                        <div className="text-right">
+                          <div className="font-bold text-green-600">{vencedor?.name} venceu</div>
+                          <div className="text-sm text-gray-500">+{rodada.pointsWon} pontos</div>
+                        </div>
+                      </div>
+
+                      {/* Cards jogadas */}
+                      <div className="flex gap-2 flex-wrap mt-2">
+                        {rodada.playedCards
+                          .sort((a, b) => a.order - b.order)
+                          .map((pc, idx) => {
+                            const jogador = state.players[pc.playerId];
+                            return (
+                              <div
+                                key={idx}
+                                className="flex flex-col items-center bg-gray-50 rounded p-2"
+                              >
+                                <div className="text-xs text-gray-500 mb-1">
+                                  {jogador?.name}
+                                </div>
+                                <PlayingCard carta={pc.card} small />
+                                <div className="text-xs font-medium mt-1">{pc.card.points} pts</div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modals */}

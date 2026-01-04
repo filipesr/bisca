@@ -271,13 +271,17 @@ export const useGameStore = create<GameStore>()(
 
         // Atualiza points do jogador winner
         const players = { ...state.players };
-        const winner = players[result.winner];
 
-        if (winner) {
+        if (players[result.winner]) {
+          const winner = players[result.winner];
           const roundCards = finalizedRound.playedCards.map((cj) => cj.card);
-          winner.wonCards = [...winner.wonCards, ...roundCards];
-          winner.points += result.pointsWon;
-          players[result.winner] = winner;
+
+          // Criar NOVO objeto player ao invés de mutar
+          players[result.winner] = {
+            ...winner,
+            wonCards: [...winner.wonCards, ...roundCards],
+            points: winner.points + result.pointsWon,
+          };
         }
 
         // Adiciona rodada ao histórico
